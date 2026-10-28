@@ -4,6 +4,8 @@
 
 A Paseo plugin for juggling several Claude, Codex and Grok accounts: usage at a glance, switch or hand off when a limit hits, question cards and context compact offers. The UI is Korean.
 
+![다중 계정관리 화면: 계정마다 사용량 막대, 새 대화에 쓰는 계정, 설정 줄](docs/images/accounts.png)
+
 ## 할 수 있는 일
 
 - **사용량 보기**: 사이드바와 계정 화면에서 계정마다 5시간·주간 사용률과 다시 차기까지 남은 시간을 봅니다.
@@ -13,6 +15,26 @@ A Paseo plugin for juggling several Claude, Codex and Grok accounts: usage at a 
 - **질문 카드**: 에이전트가 정해진 형식으로 질문을 쓰면 선택 카드로 보여 줍니다. 원하면 추천 답으로 자동 답하게 할 수 있습니다(직접 답하기 / 10초 뒤 / 바로).
 - **컨텍스트 정리(compact) 제안**: 대화가 길어져 컨텍스트가 정한 비율만큼 차면 정리할지 묻습니다. 10초 뒤 자동으로 진행하게 할 수도 있고, 정리가 끝나면 하던 작업을 이어서 하게 합니다.
 - **업데이트**: 새 버전이 나오면 자동으로 업데이트하거나, 대화에 알려 주고 직접 고르게 하거나, 확인하지 않게 할 수 있습니다.
+
+## 화면
+
+아래 화면의 계정·대화는 미리보기 도구(`tools/preview`)의 예시 데이터입니다.
+
+**새 대화에 쓸 계정 고르기**
+
+<img src="docs/images/new-agent-account.png" width="540" alt="새 대화에 쓸 계정을 고르는 창">
+
+**한도에 걸렸을 때**: 다른 계정을 고르면 같은 모델의 새 에이전트가 이어받습니다.
+
+<img src="docs/images/limit-card.png" width="560" alt="한도 도달 카드에서 이어갈 계정 고르기">
+
+**질문 카드**: 에이전트가 쓴 질문을 선택 카드로 보여 줍니다.
+
+<img src="docs/images/question-card.png" width="560" alt="에이전트 질문 카드">
+
+**컨텍스트 정리 제안**과 **업데이트 방식 묻기**
+
+<img src="docs/images/compact-card.png" width="430" alt="컨텍스트 정리 제안 카드"> <img src="docs/images/update-card.png" width="430" alt="업데이트 방식을 묻는 카드">
 
 ## 필요한 것
 
