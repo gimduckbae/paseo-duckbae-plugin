@@ -1,0 +1,8 @@
+{
+  "id": "paseo-duckbae-plugin",
+  "name": "다중 계정관리",
+  "media": [],
+  "requirements": {
+    "paseo": ">=0.13.0"
+  }
+}
