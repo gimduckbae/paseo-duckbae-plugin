@@ -1,5 +1,5 @@
 import type { PluginServerContext, PluginTurnOutcome } from "@getpaseo/plugin/server";
-import type { PaseoApi } from "@getpaseo/client";
+import type { PaseoApi } from "./paseo-types";
 import { providerFamily } from "../shared/accounts";
 import type { AccountService } from "./account-service";
 import type { CompactOffers } from "./compact-offer";

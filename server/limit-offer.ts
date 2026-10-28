@@ -1,4 +1,4 @@
-import type { PaseoApi } from "@getpaseo/client";
+import type { PaseoApi } from "./paseo-types";
 import { randomUUID } from "node:crypto";
 import { LIMIT_OFFER_ITEM_KIND, type LimitEvent, type LimitOfferItem } from "../shared/accounts";
 import type { HandoffJobs } from "./handoff";

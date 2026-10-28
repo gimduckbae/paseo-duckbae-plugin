@@ -1,4 +1,4 @@
-import type { PaseoApi } from "@getpaseo/client";
+import type { PaseoApi } from "./paseo-types";
 import { readFile, rename, writeFile } from "node:fs/promises";
 import type { QuestionAnswers } from "../shared/question";
 

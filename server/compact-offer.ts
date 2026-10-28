@@ -1,4 +1,4 @@
-import type { PaseoAgentHandle, PaseoApi } from "@getpaseo/client";
+import type { PaseoAgentHandle, PaseoApi } from "./paseo-types";
 import type { PluginHookAgent } from "@getpaseo/plugin/server";
 import { randomUUID } from "node:crypto";
 import { providerFamily } from "../shared/accounts";

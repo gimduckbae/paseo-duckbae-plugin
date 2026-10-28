@@ -1,4 +1,4 @@
-import type { PaseoApi } from "@getpaseo/client";
+import type { PaseoApi } from "./paseo-types";
 import type { AgentPermissionRequest } from "@getpaseo/protocol/agent-types";
 import { QUESTION_AUTO_NOTE_ITEM_KIND, type QuestionAnswers, type QuestionAutoNoteItem, type QuestionBlock } from "../shared/question";
 import { parseQuestionBlock, splitQuestionBlock } from "../shared/question-parse";

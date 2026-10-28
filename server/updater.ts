@@ -1,4 +1,4 @@
-import type { PaseoApi } from "@getpaseo/client";
+import type { PaseoApi } from "./paseo-types";
 import { execCommand, spawnProcess, type PluginHookAgent } from "@getpaseo/plugin/server";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";

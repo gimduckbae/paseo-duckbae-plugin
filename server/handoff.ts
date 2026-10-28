@@ -1,4 +1,4 @@
-import type { PaseoAgent, PaseoAgentHandle, PaseoApi } from "@getpaseo/client";
+import type { PaseoAgent, PaseoAgentHandle, PaseoApi } from "./paseo-types";
 import { randomUUID } from "node:crypto";
 import {
   ACCOUNT_HANDOFF_ITEM_KIND,
