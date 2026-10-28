@@ -11,6 +11,13 @@ const AUTO_ACCEPT_MS = 10_000;
 // turn_ended 훅은 턴 끝 이벤트에서 바로 불려 상태가 아직 running일 수 있다.
 const IDLE_WAIT_MS = 5_000;
 const IDLE_POLL_MS = 500;
+// 정리 명령은 끝나도 에이전트가 하던 일을 다시 시작하지 않는다(2026-10-28 사용자 보고). 정리가 끝난 것을 대화 기록에서 보고 이어서 하라고 보낸다.
+// Codex 정리는 턴이 아니라 따로 도는 명령이라(0.13 codex-app-server-agent tryHandleOutOfBand) 턴 종료 훅으로는 끝을 알 수 없다.
+const COMPACT_WATCH_MS = 15 * 60 * 1000;
+const COMPACT_POLL_MS = 3_000;
+const WATCH_TAIL = 50;
+const RESUME_TEXT =
+  "[자동 이어하기] 컨텍스트 정리가 끝났습니다. 정리 전에 하던 작업이 끝나지 않았다면 남은 일부터 이어서 진행하세요. 이미 끝났거나 사용자의 답을 기다리던 중이었다면 새 일을 시작하지 말고 한 줄로 그렇다고만 답하세요.";
 
 // Claude Code·Agent SDK 문서의 정리 지시 예시(목표·결정과 이유·파일 경로·테스트 결과·남은 일)를 따른다.
 const CLAUDE_FOCUS =
@@ -45,6 +52,12 @@ function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function nextSeq(handle: PaseoAgentHandle): Promise<number> {
+  return (await handle.timeline.refetch({ direction: "tail", limit: 1 })).window.nextSeq;
+}
+
 /**
  * 컨텍스트가 기준을 넘은 대화에 정리(/compact) 제안 카드를 붙인다. 자동 수락이 켜져 있으면 10초 뒤 받아들인다.
  * 카드·타이머·대기열은 메모리에만 있어 플러그인을 다시 불러오면 지난 카드는 사람이 눌러야 한다.
@@ -54,6 +67,7 @@ export class CompactOffers {
   private readonly queued = new Map<string, { offer: CompactOfferItem; by: By }>();
   private readonly offeredAt = new Map<string, number>();
   private readonly handled = new Set<string>();
+  private disposed = false;
 
   constructor(private readonly store: AccountStore) {}
 
@@ -121,6 +135,7 @@ export class CompactOffers {
   }
 
   dispose(): void {
+    this.disposed = true;
     for (const { timer } of this.waiting.values()) if (timer) clearTimeout(timer);
     this.waiting.clear();
   }
@@ -162,10 +177,37 @@ export class CompactOffers {
       }
       const command = compactCommand(handle.current()?.provider ?? "");
       if (status === "closed" || !command) throw new Error("에이전트가 닫혀 있습니다.");
+      const since = await nextSeq(handle);
       await handle.send(command);
       await mark({ kind: "started", by });
+      void this.resumeAfterCompact(handle, since, mark, by);
     } catch (error) {
       await mark({ kind: "failed", error: errorText(error) });
+    }
+  }
+
+  private async resumeAfterCompact(handle: PaseoAgentHandle, since: number, mark: (answer: CompactAnswer) => Promise<unknown>, by: By): Promise<void> {
+    try {
+      const until = Date.now() + COMPACT_WATCH_MS;
+      while (Date.now() < until) {
+        await sleep(COMPACT_POLL_MS);
+        if (this.disposed) return;
+        const entries = (await handle.timeline.refetch({ direction: "tail", limit: WATCH_TAIL })).entries.filter((entry) => entry.seqStart >= since);
+        if (!entries.some(({ item }) => item.type === "compaction" && item.status === "completed")) continue;
+        const status = await settledStatus(handle, IDLE_WAIT_MS);
+        const userSpoke = entries.some(({ item }) => item.type === "user_message" && !item.text.trimStart().startsWith("/compact"));
+        if (this.disposed) return;
+        if (status !== "idle" || userSpoke) {
+          await mark({ kind: "compacted", by });
+          return;
+        }
+        await handle.send(RESUME_TEXT);
+        await mark({ kind: "resumed", by });
+        return;
+      }
+      await mark({ kind: "failed", error: "정리가 끝나지 않았습니다. 한도에 걸렸거나 오류가 났을 수 있습니다." });
+    } catch (error) {
+      await mark({ kind: "failed", error: errorText(error) }).catch(() => undefined);
     }
   }
 }

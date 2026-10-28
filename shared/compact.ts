@@ -9,10 +9,13 @@ const compactBySchema = z.enum(["user", "auto"]);
 /**
  * started: 정리 명령을 보냈다. queued: 에이전트가 작업 중이라 그 턴이 끝나면 보낸다.
  * 작업 중에 메시지를 보내면 Paseo가 그 턴을 끊어서(0.13 activeTurnBehavior 기본값 interrupt) 기다린다.
+ * resumed: 정리가 끝나 하던 작업을 이어서 하라고 보냈다. compacted: 정리는 끝났고 그사이 사용자가 말을 보냈거나 에이전트가 이미 움직여 따로 보내지 않았다.
  */
 export const compactAnswerSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("started"), by: compactBySchema }),
   z.object({ kind: z.literal("queued"), by: compactBySchema }),
+  z.object({ kind: z.literal("resumed"), by: compactBySchema }),
+  z.object({ kind: z.literal("compacted"), by: compactBySchema }),
   z.object({ kind: z.literal("skipped") }),
   z.object({ kind: z.literal("failed"), error: z.string() }),
 ]);

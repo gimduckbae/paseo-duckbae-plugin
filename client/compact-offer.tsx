@@ -14,8 +14,13 @@ function answerText(offer: CompactOfferItem): { text: string; tone: "done" | "wa
   const { answer } = offer;
   if (!answer) return null;
   if (answer.kind === "started") {
-    return { text: answer.by === "auto" ? "10초 동안 답이 없어 자동으로 정리를 시작했습니다." : "정리를 시작했습니다. 끝나면 대화에 표시됩니다.", tone: "done" };
+    return {
+      text: answer.by === "auto" ? "10초 동안 답이 없어 자동으로 정리를 시작했습니다. 끝나면 하던 작업을 이어서 합니다." : "정리를 시작했습니다. 끝나면 하던 작업을 이어서 합니다.",
+      tone: "wait",
+    };
   }
+  if (answer.kind === "resumed") return { text: "정리를 마치고 하던 작업을 이어서 하라고 보냈습니다.", tone: "done" };
+  if (answer.kind === "compacted") return { text: "정리를 마쳤습니다.", tone: "done" };
   if (answer.kind === "queued") return { text: "에이전트가 작업 중이라 이번 작업이 끝나면 정리합니다.", tone: "wait" };
   if (answer.kind === "skipped") return { text: "정리하지 않았습니다. 컨텍스트가 더 차면 다시 묻습니다.", tone: "muted" };
   return { text: `정리하지 못했습니다. ${answer.error}`, tone: "danger" };
@@ -65,7 +70,7 @@ export function CompactOfferCard({ theme, item, agentId }: PluginTimelineItemPro
         padding: 12,
         borderRadius: 10,
         borderWidth: 1,
-        borderColor: pending || offer.answer?.kind === "queued" ? theme.colors.accent : theme.colors.border,
+        borderColor: pending || offer.answer?.kind === "queued" || offer.answer?.kind === "started" ? theme.colors.accent : theme.colors.border,
         backgroundColor: theme.colors.surface1,
       }}
     >

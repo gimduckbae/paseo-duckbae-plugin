@@ -182,6 +182,8 @@ function Compact({ width }: { width: number }) {
       <CompactCard data={{ ...COMPACT, offerId: "c3", maxTokens: 272_000, usedTokens: 190_400, answer: { kind: "queued", by: "auto" } }} />
       <CompactCard data={{ ...COMPACT, offerId: "c4", answer: { kind: "started", by: "auto" } }} />
       <CompactCard data={{ ...COMPACT, offerId: "c5", answer: { kind: "started", by: "user" } }} />
+      <CompactCard data={{ ...COMPACT, offerId: "c8", answer: { kind: "resumed", by: "auto" } }} />
+      <CompactCard data={{ ...COMPACT, offerId: "c9", answer: { kind: "compacted", by: "user" } }} />
       <CompactCard data={{ ...COMPACT, offerId: "c6", answer: { kind: "skipped" } }} />
       <CompactCard data={{ ...COMPACT, offerId: "c7", answer: { kind: "failed", error: "에이전트가 닫혀 있습니다." } }} />
     </View>
