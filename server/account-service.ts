@@ -67,7 +67,8 @@ export class AccountService {
   private readonly agentAccounts = new Map<string, string>();
   private readonly deviceLogins = new Map<string, DeviceLogin>();
   private readonly claudeLogins = new Map<string, { session: ClaudeLoginSession; accountId: string | null }>();
-  // 에이전트별 마지막으로 본 누적 비용. undefined면 기준값을 아직 모른다(재개된 세션은 이전 비용부터 센다).
+  // 에이전트별 마지막으로 본 누적 비용. 런타임이 닫혔다 다시 열려도 남겨 둔다(0.14부터 1시간 쉬면 닫힘).
+  // undefined면 기준값을 모른다(플러그인을 다시 불러온 뒤 재개된 세션은 이전 비용부터 센다).
   private readonly agentCost = new Map<string, number | undefined>();
   private readonly extrasCheckedAt = new Map<string, number>();
   // API 키 계정의 Admin API 이번 달 사용액. 조회할 수 없던 키는 unsupportedAt부터 한동안 다시 묻지 않는다.
@@ -95,7 +96,7 @@ export class AccountService {
     const account = this.store.find(accountId);
     if (pinned?.id !== account.id) await this.store.pinAgent(agentId, account.id);
     this.agentAccounts.set(agentId, account.id);
-    this.agentCost.set(agentId, freshSession ? 0 : undefined);
+    this.agentCost.set(agentId, freshSession ? 0 : this.agentCost.get(agentId));
     switch (account.credential.kind) {
       case "claude_login":
         // 1년 토큰이 있으면 그걸로, 없으면 브라우저 로그인 폴더(원래 ~/.claude에 이어 둔)로 실행한다.
@@ -118,7 +119,13 @@ export class AccountService {
     return { CODEX_HOME: home, CODEX_SQLITE_HOME: this.store.mainHome("codex") };
   }
 
+  /** 런타임이 닫혔다. 다음 메시지에 같은 세션으로 다시 열리므로 비용 기준값은 남긴다. */
   forgetAgent(agentId: string): void {
+    this.agentAccounts.delete(agentId);
+  }
+
+  /** 보관한 에이전트는 비용 기준값까지 지운다. */
+  dropAgent(agentId: string): void {
     this.agentAccounts.delete(agentId);
     this.agentCost.delete(agentId);
   }

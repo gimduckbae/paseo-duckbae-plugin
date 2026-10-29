@@ -175,8 +175,9 @@ export class CompactOffers {
         await mark({ kind: "queued", by });
         return;
       }
+      // closed는 런타임만 내려간 상태다(0.14부터 1시간 쉬면 내려감). 보내면 Paseo가 같은 세션으로 다시 연다.
       const command = compactCommand(handle.current()?.provider ?? "");
-      if (status === "closed" || !command) throw new Error("에이전트가 닫혀 있습니다.");
+      if (!command) throw new Error("정리할 수 없는 에이전트입니다.");
       const since = await nextSeq(handle);
       await handle.send(command);
       await mark({ kind: "started", by });

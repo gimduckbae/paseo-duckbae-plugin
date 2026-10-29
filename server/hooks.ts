@@ -62,6 +62,8 @@ export function registerHooks(
     questionAuto.forget(agent.id);
   });
 
+  server.on("agent.archived", ({ agent }) => service.dropAgent(agent.id));
+
   server.on("agent.turn_started", async ({ agent }, { paseo }) => {
     await Promise.all([compact.onTurnStarted(paseo, agent.id), questionAuto.onTurnStarted(agent.id)]);
   });

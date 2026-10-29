@@ -185,7 +185,7 @@ function Compact({ width }: { width: number }) {
       <CompactCard data={{ ...COMPACT, offerId: "c8", answer: { kind: "resumed", by: "auto" } }} />
       <CompactCard data={{ ...COMPACT, offerId: "c9", answer: { kind: "compacted", by: "user" } }} />
       <CompactCard data={{ ...COMPACT, offerId: "c6", answer: { kind: "skipped" } }} />
-      <CompactCard data={{ ...COMPACT, offerId: "c7", answer: { kind: "failed", error: "에이전트가 닫혀 있습니다." } }} />
+      <CompactCard data={{ ...COMPACT, offerId: "c7", answer: { kind: "failed", error: "정리할 수 없는 에이전트입니다." } }} />
     </View>
   );
 }
