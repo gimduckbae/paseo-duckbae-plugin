@@ -80,7 +80,7 @@ export const limitEventSchema = z.object({
 });
 export type LimitEvent = z.infer<typeof limitEventSchema>;
 
-/** 이어가기 작업. 사용자가 다른 곳에 가 있어도 끝난 것을 알 수 있게 하루 동안 목록에 남긴다. */
+/** 사용자가 다른 곳에 가 있어도 끝난 것을 알 수 있게 목록에 남긴다. */
 export const handoffViewSchema = z.object({
   jobId: z.string(),
   agentId: z.string(),
@@ -94,7 +94,7 @@ export const handoffViewSchema = z.object({
   newAgentId: z.string().nullable(),
   title: z.string().nullable(),
   error: z.string().nullable(),
-  /** 사용자가 결과를 열었거나 닫았다. */
+  cascadeChildCount: z.number().nullable(),
   seen: z.boolean(),
 });
 export type HandoffView = z.infer<typeof handoffViewSchema>;
@@ -254,6 +254,8 @@ export const accountHandoffItemSchema = z.object({
   title: z.string().nullable(),
   handoffPath: z.string().nullable(),
   error: z.string().nullable(),
+  /** 지난 대화에 남은, 이 필드가 생기기 전 행에는 없다. */
+  cascadeChildCount: z.number().nullable().optional(),
 });
 export type AccountHandoffItem = z.infer<typeof accountHandoffItemSchema>;
 

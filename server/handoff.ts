@@ -15,6 +15,8 @@ import type { AccountStore, StoredAccount } from "./store";
 
 const WRITE_TIMEOUT_MS = 15 * 60 * 1000;
 const KEEP_MS = 24 * 60 * 60 * 1000;
+// git 설치 빌드는 @getpaseo/protocol을 타입으로만 통과시켜 PARENT_AGENT_ID_LABEL 값을 가져올 수 없다(Paseo 0.14 compiler-build.js).
+const PARENT_AGENT_LABEL = "paseo.parent-agent-id";
 
 type Message = { role: "user" | "assistant"; text: string };
 
@@ -40,6 +42,18 @@ async function recentMode(paseo: PaseoApi, provider: Provider): Promise<string |
     .filter((agent) => providerFamily(agent.provider) === provider)
     .sort((a, b) => (b.lastUserMessageAt ?? b.updatedAt).localeCompare(a.lastUserMessageAt ?? a.updatedAt))[0];
   return recent?.currentModeId ?? undefined;
+}
+
+// 사용자가 지금 에이전트 탭을 닫으면(보관) Paseo가 같은 워크스페이스의 하위도 같이 보관해 하던 일이 끊긴다(2026-10-30 하위 4개).
+// 다른 워크스페이스의 하위는 떼어 남기므로 세지 않는다. 열린 탭 라벨이 있는 하위도 떼어 남지만 탭 상태는 그 뒤에 바뀔 수 있어 센다
+// (Paseo 0.14 agent-manager cascadeArchiveChildren).
+async function countCascadeChildren(paseo: PaseoApi, parent: PaseoAgent): Promise<number | null> {
+  try {
+    const { entries } = await paseo.agents.list({ filter: { labels: { [PARENT_AGENT_LABEL]: parent.id }, includeBackground: true } });
+    return entries.filter(({ agent }) => !(parent.workspaceId && agent.workspaceId && agent.workspaceId !== parent.workspaceId)).length;
+  } catch {
+    return null;
+  }
 }
 
 export interface HandoffRequest {
@@ -109,6 +123,7 @@ export class HandoffJobs {
       newAgentId: null,
       title: null,
       error: null,
+      cascadeChildCount: null,
       seen: false,
     });
     void this.run(paseo, jobId, agent, target, request.model);
@@ -129,9 +144,10 @@ export class HandoffJobs {
       const handoff = await this.writeHandoff(handle, from);
       const handoffPath = await this.store.saveHandoff(agent.id, handoff);
       this.update(jobId, { phase: "creating" });
-      const created = await this.createAgent(paseo, agent, target, model, continuationPrompt({ fromLabel, handoff, handoffPath }));
-      this.update(jobId, { status: "completed", phase: null, newAgentId: created.id, title: created.title });
-      await this.appendRow(handle, { ...row, title: created.title, handoffPath });
+      const cascadeChildCount = await countCascadeChildren(paseo, agent);
+      const created = await this.createAgent(paseo, agent, target, model, continuationPrompt({ fromLabel, handoff, handoffPath, cascadeChildCount }));
+      this.update(jobId, { status: "completed", phase: null, newAgentId: created.id, title: created.title, cascadeChildCount });
+      await this.appendRow(handle, { ...row, title: created.title, handoffPath, cascadeChildCount });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.update(jobId, { status: "failed", phase: null, error: message });

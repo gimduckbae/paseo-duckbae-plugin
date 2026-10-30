@@ -7,7 +7,7 @@ import { Pressable, Text, View } from "react-native";
 import { handoffStartRpc, providerFamily, type AccountView, type Provider } from "../shared/accounts";
 import { Button, Hint } from "./form-parts";
 import { peakPercent, PROVIDER_LABEL, PROVIDERS, stateLabel, usageColor } from "./format";
-import { handoffStatusText } from "./handoff-list";
+import { ChildrenWarning, handoffStatusText } from "./handoff-list";
 import { groupModels, type ModelOption } from "./model-groups";
 import { useOverview } from "./use-accounts";
 
@@ -123,10 +123,7 @@ export function AccountRow({ theme, account, selected, current, onPress }: { the
   );
 }
 
-/**
- * 계정 알약을 누르면 열리는 팝오버. 제공자 → 모델 → 계정을 한 화면에서 고른다.
- * 펼침 메뉴는 화면 끝까지 늘어졌고, 에이전트 패널은 플러그인이 닫을 방법이 없어 닫기 버튼을 둘 수 없었다(2026-10-21).
- */
+/** 펼침 메뉴는 화면 끝까지 늘어졌고, 에이전트 패널은 플러그인이 닫을 방법이 없어 닫기 버튼을 둘 수 없었다(2026-10-21). */
 export function HandoffPanel(props: PluginButtonContentProps) {
   const { theme, layout, close } = props;
   const agentId = props.context === "agent" ? props.agentId : "";
@@ -154,7 +151,6 @@ export function HandoffPanel(props: PluginButtonContentProps) {
     options.find((option) => option.value === modelChoice) ??
     options.find((option) => option.value === (sameProvider ? agent?.model : recent?.[provider])) ??
     groups[0]?.models[0]?.option;
-  // 같은 제공자면 바꿔 갈 다른 계정을, 다른 제공자면 그 제공자의 '사용 중' 계정을 먼저 고른다.
   const account =
     accounts.find((item) => item.id === accountChoice) ??
     (sameProvider ? accounts.find((item) => item.id !== currentAccountId && !blocked(item)) : accounts.find((item) => item.active)) ??
@@ -242,6 +238,7 @@ export function HandoffPanel(props: PluginButtonContentProps) {
             {pending ? " 창을 닫아도 계속되고, 끝나면 사이드바 '다중 계정관리'에 표시됩니다." : ""}
           </Hint>
         ) : null}
+        {job?.status === "completed" ? <ChildrenWarning theme={theme} count={job.cascadeChildCount} tabOwner="이 에이전트" /> : null}
         <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
           <Text style={{ flex: 1, fontSize: 12, color: theme.colors.foreground }} numberOfLines={2}>
             {model && account ? `${PROVIDER_LABEL[provider]} ${model.label} · ${account.label}` : ""}

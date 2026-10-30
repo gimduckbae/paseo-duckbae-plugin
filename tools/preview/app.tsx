@@ -420,7 +420,7 @@ function Handoff() {
       <View style={{ flex: 1, padding: 24, gap: 14 }}>
         <Text style={{ fontSize: 14, lineHeight: 21, color: c.foreground }}>결제 승인 흐름을 정리했습니다. 테스트는 아직 돌리지 않았습니다.</Text>
         <AccountHandoffRow theme={theme} host={host} layout={layout} agentId="a1" timestamp={new Date()}
-          item={{ type: "plugin", kind: "account-handoff", version: 1, data: { toLabel: "개인 Pro", toProvider: "codex", title: "결제 리팩토링 · 개인 Pro", handoffPath: "C:/Users/me/.paseo/paseo-duckbae-plugin/handoffs/2026-10-21T07-30-00-000Z-a1.md", error: null } }} />
+          item={{ type: "plugin", kind: "account-handoff", version: 1, data: { toLabel: "개인 Pro", toProvider: "codex", title: "결제 리팩토링 · 개인 Pro", handoffPath: "C:/Users/me/.paseo/paseo-duckbae-plugin/handoffs/2026-10-21T07-30-00-000Z-a1.md", error: null, cascadeChildCount: 3 } }} />
         <View style={{ flex: 1 }} />
         <View style={{ flexDirection: "row", gap: 6 }}>
           <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: c.border }}>

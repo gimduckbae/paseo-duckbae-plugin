@@ -23,6 +23,16 @@ export function handoffStatusText(job: HandoffView): string {
   }
 }
 
+export function ChildrenWarning({ theme, count, tabOwner }: { theme: PluginTheme; count: number | null | undefined; tabOwner: "이 에이전트" | "이전 에이전트" }) {
+  if (count === undefined || count === 0) return null;
+  const who = count === null ? "그 밑의 하위 에이전트도" : `그 밑의 하위 에이전트 ${count}개도`;
+  return (
+    <Paragraph style={{ fontSize: 12, lineHeight: 17, color: theme.colors.statusWarning }}>
+      {tabOwner} 탭을 닫거나 보관하면 {who} 같이 보관돼 하던 일이 끊깁니다. 하위 일이 끝날 때까지 그대로 두세요.
+    </Paragraph>
+  );
+}
+
 function statusColor(theme: PluginTheme, job: HandoffView): string {
   if (job.status === "failed") return theme.colors.statusDanger;
   if (job.status === "completed") return theme.colors.statusSuccess;
@@ -42,10 +52,7 @@ export function ClearFinishedHandoffs({ theme, jobs }: { theme: PluginTheme; job
   );
 }
 
-/**
- * 이어가기 작업 목록. 인계 문서를 쓰는 동안 사용자는 다른 워크스페이스에 가 있으므로 결과를 여기서 확인한다.
- * onOpen은 화면처럼 에이전트로 이동할 수 있는 곳에서만 넘긴다.
- */
+/** 인계 문서를 쓰는 동안 사용자는 다른 워크스페이스에 가 있으므로 결과를 여기서 확인한다. */
 export function HandoffList({ theme, jobs, onOpen }: { theme: PluginTheme; jobs: readonly HandoffView[]; onOpen?: (job: HandoffView) => void }) {
   const seen = useRpc(handoffSeenRpc);
   const remove = useRpc(handoffRemoveRpc);
@@ -66,6 +73,7 @@ export function HandoffList({ theme, jobs, onOpen }: { theme: PluginTheme; jobs:
               {job.fromTitle ?? "에이전트"} → {handoffTarget(job)}
             </Text>
             <Paragraph style={{ fontSize: 12, color: statusColor(theme, job) }}>{handoffStatusText(job)}</Paragraph>
+            {job.status === "completed" ? <ChildrenWarning theme={theme} count={job.cascadeChildCount} tabOwner="이전 에이전트" /> : null}
           </View>
           {job.status === "completed" && job.newAgentId && onOpen ? (
             <Pressable

@@ -1,6 +1,7 @@
 import type { PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { Icon } from "@getpaseo/plugin/client/react-native";
 import { Text, View } from "react-native";
+import { ChildrenWarning } from "./handoff-list";
 import { Paragraph } from "./paragraph";
 import { PROVIDER_LABEL, type AccountHandoffItem, type AccountSwitchItem } from "../shared/accounts";
 
@@ -19,7 +20,7 @@ export function AccountSwitchRow({ theme, item }: PluginTimelineItemProps<Accoun
 }
 
 export function AccountHandoffRow({ theme, item }: PluginTimelineItemProps<AccountHandoffItem>) {
-  const { toLabel, toProvider, title, handoffPath, error } = item.data;
+  const { toLabel, toProvider, title, handoffPath, error, cascadeChildCount } = item.data;
   const target = `${PROVIDER_LABEL[toProvider]} · ${toLabel}`;
   return (
     <View style={{ flexDirection: "row", alignItems: "flex-start", gap: 8, paddingVertical: 6 }}>
@@ -30,6 +31,7 @@ export function AccountHandoffRow({ theme, item }: PluginTimelineItemProps<Accou
         <Paragraph style={{ fontSize: 13, color: theme.colors.foregroundMuted }}>
           {error ? `${target}에서 이어가지 못했습니다. ${error}` :`${target} 계정의 새 에이전트 '${title ?? ""}'에서 이어갑니다.`}
         </Paragraph>
+        <ChildrenWarning theme={theme} count={cascadeChildCount} tabOwner="이 에이전트" />
         {handoffPath ? (
           <Text style={{ fontSize: 11, color: theme.colors.foregroundMuted }} numberOfLines={1}>
             인계 문서: {handoffPath}

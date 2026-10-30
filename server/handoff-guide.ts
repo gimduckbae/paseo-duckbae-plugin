@@ -28,11 +28,18 @@ export const HANDOFF_REQUEST = `[계정 전환 인계 요청]
 ## 주의
 하지 말 것, 지켜야 할 규칙, 사용자 확인이 필요한 것.`;
 
-export function continuationPrompt(input: { fromLabel: string; handoff: string; handoffPath: string }): string {
+// 새 에이전트가 이전 에이전트의 하위에 일을 이어 맡기면, 사용자가 이전 탭을 닫는 순간 하위가 같이 보관돼 일이 끊긴다(2026-10-30).
+function childrenNote(count: number | null): string {
+  if (count === 0) return "";
+  const who = count === null ? "이전 에이전트 밑의 하위 에이전트" : `이전 에이전트 밑에 남은 하위 에이전트 ${count}개`;
+  return `${who}는 이전 에이전트 소속이라, 사용자가 이전 에이전트 탭을 닫거나 보관하면 같이 보관됩니다. 그 하위에 일을 다시 보내거나 보관된 하위를 깨우지 말고, 맡길 일은 당신 밑에 하위 에이전트를 새로 만들어 맡기세요.\n`;
+}
+
+export function continuationPrompt(input: { fromLabel: string; handoff: string; handoffPath: string; cascadeChildCount: number | null }): string {
   return `[계정 전환으로 이어받은 작업]
 이전 에이전트(${input.fromLabel})가 남긴 인계 문서입니다. 이 문서를 바탕으로 작업을 이어가세요.
 시작하기 전에 작업 폴더의 실제 상태(git status 등)가 문서와 맞는지 확인하고, 사용자 확인이 필요한 일은 먼저 묻습니다.
-인계 문서 원본: ${input.handoffPath}
+${childrenNote(input.cascadeChildCount)}인계 문서 원본: ${input.handoffPath}
 
 ${input.handoff}`;
 }

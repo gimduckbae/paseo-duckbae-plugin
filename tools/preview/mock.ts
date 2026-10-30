@@ -35,11 +35,11 @@ export const overview: Overview = {
   handoffs: [
     {
       jobId: "j2", agentId: "a2", fromTitle: "상품 페이지 개선", toLabel: "개인 Pro", toProvider: "codex", modelLabel: "GPT-6-Astra",
-      startedAt: after(-1), status: "pending", phase: "writing", newAgentId: null, title: null, error: null, seen: false,
+      startedAt: after(-1), status: "pending", phase: "writing", newAgentId: null, title: null, error: null, cascadeChildCount: null, seen: false,
     },
     {
       jobId: "j1", agentId: "a1", fromTitle: "결제 리팩토링", toLabel: "개인 Pro", toProvider: "codex", modelLabel: "GPT-6-Astra",
-      startedAt: after(-12), status: "completed", phase: null, newAgentId: "a9", title: "결제 리팩토링 · 개인 Pro", error: null, seen: true,
+      startedAt: after(-12), status: "completed", phase: null, newAgentId: "a9", title: "결제 리팩토링 · 개인 Pro", error: null, cascadeChildCount: 3, seen: true,
     },
   ],
   // 켠 뒤 월 상한 = 이번 달 사용분 + 잔액(server/account-service.ts turnOnExtra). 개인 Max: $0 + $20.
