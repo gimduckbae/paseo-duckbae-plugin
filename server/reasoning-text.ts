@@ -14,7 +14,10 @@ const LINE_PREFIX = /^[ \t>]*(?:(?:[-*+]|\d+[.)]|#{1,6})[ \t]+)?/;
 const TERMINATOR = /[.!?]+(?!\d)/g;
 // 경로·중괄호·꺾쇠가 든 조각은 번역기가 쪼개거나 번역해 버린다.
 const RISKY = /[\\/{}()<>]/;
-const PLACEHOLDER = /\[\[(\d+)\]\]/g;
+// 자리표시자 모양을 바꾸지 마라. opus-mt-tc-big-en-ko는 `[[1]]`을 전부 잃고 문장까지 무너뜨린다
+// (2026-11-06 실측: 코드가 든 실제 문장 10개에서 표시 보존 0/19, "[잡담] 저도 checked이가 [2]는데"로 깨짐).
+// 같은 문장에서 XQnQX·QQQn·zqnzq는 19/19 보존했다.
+const PLACEHOLDER = /XQ(\d+)QX/g;
 
 // 번역기가 자주 바꿔 놓는 낱말만 되돌린다. 치환이 조사를 흐트러뜨릴 수 있어(후크를 → 훅를) 목록을 늘리지 않는다.
 const TERMS: readonly (readonly [string, string])[] = [
@@ -31,7 +34,7 @@ function mask(text: string): { masked: string; tokens: string[] } {
   const masked = text.replace(/`[^`]*`|\S+/g, (piece) => {
     if (!piece.startsWith("`") && !RISKY.test(piece)) return piece;
     tokens.push(piece);
-    return `[[${tokens.length}]]`;
+    return `XQ${tokens.length}QX`;
   });
   return { masked, tokens };
 }
@@ -45,7 +48,7 @@ function sentence(masked: string, lineTokens: string[]): ReasoningSentence {
   const tokens: string[] = [];
   const renumbered = masked.replace(PLACEHOLDER, (_, index: string) => {
     tokens.push(lineTokens[Number(index) - 1]);
-    return `[[${tokens.length}]]`;
+    return `XQ${tokens.length}QX`;
   });
   return { kind: "sentence", text: restore(renumbered, tokens), masked: renumbered, tokens, hash: hashText(renumbered) };
 }
