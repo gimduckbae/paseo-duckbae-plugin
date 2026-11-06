@@ -5,24 +5,33 @@ import { useQuery } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { hashText } from "../shared/hash";
-import { reasoningTranslateRpc, type ReasoningItem, type ReasoningTranslation, type TranslatorState } from "../shared/reasoning";
+import { isInstalling, reasoningTranslateRpc, translatorPercent, type ReasoningItem, type ReasoningTranslation, type TranslatorState } from "../shared/reasoning";
 import { Paragraph } from "./paragraph";
 
 const POLL_MS = 1_500;
 
 const TRANSLATOR_NOTE: Record<TranslatorState, string> = {
   missing: "번역기 없음",
+  downloading: "번역기 받는 중",
+  extracting: "번역기 압축 푸는 중",
   loading: "번역기 준비 중",
   ready: "번역기 대기",
   failed: "번역 실패",
 };
+
+/** 받는 중에는 번역이 오지 않는다. 얼마나 남았는지 여기서 보여 주지 않으면 멈춘 것처럼 보인다. */
+function unavailableNote(answer: Extract<ReasoningTranslation, { status: "unavailable" }>): string {
+  const percent = translatorPercent(answer.download);
+  if (answer.translator === "downloading" && percent !== null) return `${TRANSLATOR_NOTE.downloading} ${String(percent)}%`;
+  return TRANSLATOR_NOTE[answer.translator];
+}
 
 function headerNote(phase: ReasoningItem["phase"], answer: ReasoningTranslation | undefined, failed: boolean, korean: string | null): string {
   if (phase === "streaming") return "생각 중";
   if (failed) return "번역을 묻지 못했습니다";
   if (answer === undefined) return "번역 기다림";
   if (answer.status === "pending") return "번역 중";
-  if (answer.status === "unavailable") return TRANSLATOR_NOTE[answer.translator];
+  if (answer.status === "unavailable") return unavailableNote(answer);
   return korean ? "번역됨" : "원문";
 }
 
@@ -40,7 +49,11 @@ export function ReasoningRow({ theme, item }: PluginTimelineItemProps<ReasoningI
     queryFn: () => translate({ text }),
     enabled: phase === "complete",
     staleTime: Infinity,
-    refetchInterval: (query) => (query.state.data?.status === "pending" ? POLL_MS : false),
+    refetchInterval: (query) => {
+      const answer = query.state.data;
+      const again = answer?.status === "pending" || (answer?.status === "unavailable" && isInstalling(answer.translator));
+      return again ? POLL_MS : false;
+    },
   });
 
   const data = translation.data;

@@ -6,6 +6,7 @@ import type { ReasoningTranslation, ReasoningView, TranslatorState } from "../sh
 import { onJsonLines, withTimeout, type JsonObject } from "./json-lines";
 import { renderReasoning, segmentReasoning, sentencesOf } from "./reasoning-text";
 import type { AccountStore } from "./store";
+import { TranslatorDownload } from "./translator-download";
 
 const THREADS = 4;
 const READY_MS = 30_000;
@@ -51,11 +52,39 @@ export class ReasoningTranslator {
   private readonly inflight = new Set<string>();
   private readonly pending = new Map<string, (message: JsonObject) => void>();
 
-  constructor(private readonly store: AccountStore) {}
+  constructor(
+    private readonly store: AccountStore,
+    private readonly download: TranslatorDownload = new TranslatorDownload(store),
+  ) {}
 
   status(): ReasoningView {
     if (this.state !== "loading" && this.state !== "failed") this.state = this.paths() ? "ready" : "missing";
-    return { enabled: this.store.reasoningTranslate, translator: this.state, error: this.error };
+    const install = this.download.status();
+    const installing = install.phase === "idle" ? null : install.phase;
+    return {
+      enabled: this.store.reasoningTranslate,
+      translator: this.state === "missing" && installing ? installing : this.state,
+      error: this.error ?? (this.state === "missing" ? install.error : null),
+      download: { supported: install.supported, needed: install.needed, receivedBytes: install.received, totalBytes: install.total },
+    };
+  }
+
+  /** 받기는 뒤에서 돌아 이 함수는 기다리지 않는다. */
+  install(): void {
+    if (!this.store.reasoningTranslate) return;
+    this.download.start();
+  }
+
+  /** 추론 훔쳐보기를 끌 때. */
+  async turnOff(): Promise<void> {
+    await this.download.discard();
+    await this.stop();
+  }
+
+  /** 플러그인을 내릴 때. */
+  async dispose(): Promise<void> {
+    await this.download.abort();
+    await this.stop();
   }
 
   translate(text: string): ReasoningTranslation {
@@ -63,7 +92,10 @@ export class ReasoningTranslator {
     const segments = segmentReasoning(text);
     const missing = sentencesOf(segments).filter((segment) => !this.cache.has(this.key(segment.hash)));
     if (missing.length === 0) return { status: "ready", markdown: renderReasoning(segments, (hash) => this.cache.get(this.key(hash))) };
-    if (this.unusable()) return { status: "unavailable", translator: this.state, error: this.error };
+    if (this.unusable()) {
+      const view = this.status();
+      return { status: "unavailable", translator: view.translator, error: view.error, download: view.download };
+    }
     // 보낸 문장은 답이 와야 캐시에 들어간다. inflight를 안 보면 화면이 다시 물을 때마다 같은 묶음을 또 보낸다
     // (2026-11-06 실측: 번역기가 처음 뜨는 느린 판에서 60문장이 84문장으로, 묶음 3개가 4개로).
     for (const segment of missing) {

@@ -1,6 +1,7 @@
 import { useRpc, type PluginClientContext } from "@getpaseo/plugin/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { activateRpc, overviewRpc, removeAccountRpc, setQuestionAutoRpc, setReasoningTranslateRpc, setSwapOfferRpc, type Overview } from "../shared/accounts";
+import { activateRpc, installTranslatorRpc, overviewRpc, removeAccountRpc, setQuestionAutoRpc, setReasoningTranslateRpc, setSwapOfferRpc, type Overview } from "../shared/accounts";
+import { isInstalling } from "../shared/reasoning";
 import { setCompactAutoRpc, setCompactThresholdRpc } from "../shared/compact";
 import type { QuestionAutoMode } from "../shared/question";
 
@@ -11,9 +12,15 @@ export function useOverview() {
   return useQuery({
     queryKey: OVERVIEW_KEY,
     queryFn: () => overview({ refresh: false }),
-    // 이어가기가 진행 중이면 끝난 것을 바로 보여 주도록 자주 묻는다.
-    refetchInterval: (query) => (query.state.data?.handoffs.some((job) => job.status === "pending") ? 3_000 : 30_000),
+    refetchInterval: (query) => pollMs(query.state.data),
   });
+}
+
+// 이어가기가 끝난 것과 번역기를 받는 진행은 바로 보여야 한다. 그 밖에는 30초면 된다.
+function pollMs(data: Overview | undefined): number {
+  if (data?.handoffs.some((job) => job.status === "pending")) return 3_000;
+  if (data && isInstalling(data.reasoning.translator)) return 1_500;
+  return 30_000;
 }
 
 export function useAccountActions() {
@@ -25,6 +32,7 @@ export function useAccountActions() {
   const setCompactThreshold = useRpc(setCompactThresholdRpc);
   const setQuestionAuto = useRpc(setQuestionAutoRpc);
   const setReasoningTranslate = useRpc(setReasoningTranslateRpc);
+  const installTranslator = useRpc(installTranslatorRpc);
   const remove = useRpc(removeAccountRpc);
   const onSuccess = (data: Overview) => queryClient.setQueryData(OVERVIEW_KEY, data);
   return {
@@ -35,6 +43,7 @@ export function useAccountActions() {
     setCompactThreshold: useMutation({ mutationFn: (percent: number) => setCompactThreshold({ percent }), onSuccess }),
     setQuestionAuto: useMutation({ mutationFn: (mode: QuestionAutoMode) => setQuestionAuto({ mode }), onSuccess }),
     setReasoningTranslate: useMutation({ mutationFn: (enabled: boolean) => setReasoningTranslate({ enabled }), onSuccess }),
+    installTranslator: useMutation({ mutationFn: () => installTranslator({}), onSuccess }),
     remove: useMutation({ mutationFn: (accountId: string) => remove({ accountId }), onSuccess }),
   };
 }

@@ -458,7 +458,7 @@ function Reasoning({ variant }: { variant: string }) {
       </View>
       {variant === "off" ? <NativeThoughtLine text={REASONING_SOURCE} /> : null}
       {variant === "on" ? <ReasoningLine text={REASONING_LIVE} phase="streaming" /> : null}
-      {variant === "on" || variant === "wait" || variant === "done" || variant === "fail" ? (
+      {variant === "on" || variant === "wait" || variant === "done" || variant === "fail" || variant === "dl" ? (
         <ReasoningLine text={REASONING_SOURCE} phase="complete" />
       ) : null}
       <Text style={{ fontSize: 14, lineHeight: 21, color: c.foreground }}>config/app.toml을 읽고 import를 확인했습니다. 고칠 곳은 두 군데입니다.</Text>

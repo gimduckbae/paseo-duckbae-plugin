@@ -1,6 +1,6 @@
 import type { AccountView, Overview } from "../../shared/accounts";
 import { PROGRESS_BY_RUN, WAITING } from "./workflow-samples";
-import type { ReasoningTranslation } from "../../shared/reasoning";
+import { TRANSLATOR_BYTES, type ReasoningTranslation } from "../../shared/reasoning";
 import { REASONING_KOREAN } from "./reasoning-samples";
 
 const now = Date.now();
@@ -29,13 +29,27 @@ function account(partial: Partial<AccountView> & Pick<AccountView, "id" | "provi
   };
 }
 
+const DOWNLOAD_DONE = { supported: true, needed: false, receivedBytes: 0, totalBytes: 0 };
+const DOWNLOAD_HALF = { supported: true, needed: true, receivedBytes: 84_301_312, totalBytes: TRANSLATOR_BYTES };
+
 // 추론 훔쳐보기 설정 줄의 상태별 모습. #desktop-rz-<상태>로 고른다.
 function reasoningView(): Overview["reasoning"] {
   const variant = /-rz-([a-z]+)/.exec(location.hash)?.[1] ?? "ready";
-  if (variant === "off") return { enabled: false, translator: "ready", error: null };
-  if (variant === "missing") return { enabled: true, translator: "missing", error: null };
-  if (variant === "failed") return { enabled: true, translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory" };
-  return { enabled: true, translator: "ready", error: null };
+  if (variant === "off") return { enabled: false, translator: "ready", error: null, download: DOWNLOAD_DONE };
+  if (variant === "missing") return { enabled: true, translator: "missing", error: null, download: { ...DOWNLOAD_DONE, needed: true } };
+  if (variant === "nowin") return { enabled: false, translator: "missing", error: null, download: { supported: false, needed: false, receivedBytes: 0, totalBytes: 0 } };
+  if (variant === "downloading") return { enabled: true, translator: "downloading", error: null, download: DOWNLOAD_HALF };
+  if (variant === "extracting") return { enabled: true, translator: "extracting", error: null, download: { ...DOWNLOAD_HALF, receivedBytes: TRANSLATOR_BYTES } };
+  if (variant === "dlfail") {
+    return {
+      enabled: true,
+      translator: "failed",
+      error: "opus-mt-tc-big-en-ko-ct2-int8.zip을 내려받지 못했습니다. fetch failed",
+      download: DOWNLOAD_HALF,
+    };
+  }
+  if (variant === "failed") return { enabled: true, translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory", download: DOWNLOAD_DONE };
+  return { enabled: true, translator: "ready", error: null, download: DOWNLOAD_DONE };
 }
 
 export const overview: Overview = {
@@ -187,11 +201,13 @@ function updateStatus() {
   };
 }
 
-// 번역 결과. #rz-wait는 받는 중, #rz-fail은 번역기 실패, 나머지는 번역된 글.
 function reasoningTranslation(): ReasoningTranslation {
   const view = location.hash.slice(1);
   if (view === "rz-wait") return { status: "pending" };
-  if (view === "rz-fail") return { status: "unavailable", translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory" };
+  if (view === "rz-dl") return { status: "unavailable", translator: "downloading", error: null, download: DOWNLOAD_HALF };
+  if (view === "rz-fail") {
+    return { status: "unavailable", translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory", download: DOWNLOAD_DONE };
+  }
   if (view === "rz-off") return { status: "off" };
   return { status: "ready", markdown: REASONING_KOREAN };
 }

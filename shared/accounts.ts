@@ -148,6 +148,13 @@ export const setReasoningTranslateRpc = defineRpc({
   output: overviewSchema,
 });
 
+/** 받기는 뒤에서 도니 시작만 하고 바로 답한다. */
+export const installTranslatorRpc = defineRpc({
+  name: "reasoning.translator.install",
+  input: z.object({}),
+  output: overviewSchema,
+});
+
 export const renameAccountRpc = defineRpc({
   name: "accounts.rename",
   input: z.object({ accountId: z.string(), label: z.string().trim().min(1).max(40) }),

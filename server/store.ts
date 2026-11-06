@@ -52,7 +52,7 @@ interface StoredState {
   questionAuto?: QuestionAutoMode;
   /** 추론 훔쳐보기. 에이전트별이 아니라 전역이고, 이 필드가 생기기 전 state.json에는 없다(꺼짐). */
   reasoningTranslate?: boolean;
-  /** 번역기 실행 파일·모델 자리를 기본값에서 옮길 때만 쓴다. 내려받기 기능이 없어 손으로 적는다. */
+  /** 번역기 실행 파일·모델 자리를 기본값에서 옮길 때만 쓴다. */
   translator?: { exe?: string; model?: string };
   /** 플러그인 업데이트 방식. 없으면 아직 고르지 않았다. */
   updateMode?: UpdateMode;

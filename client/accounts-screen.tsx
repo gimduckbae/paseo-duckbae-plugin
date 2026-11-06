@@ -89,7 +89,9 @@ export function AccountsScreen({ theme, layout, navigation }: PluginScreenProps)
               compact={layout.compact}
               value={overview.data.reasoning}
               busy={actions.setReasoningTranslate.isPending}
+              installing={actions.installTranslator.isPending}
               onChange={(enabled) => actions.setReasoningTranslate.mutate(enabled)}
+              onInstall={() => actions.installTranslator.mutate()}
             />
           ) : null}
           <UpdateSection theme={theme} />

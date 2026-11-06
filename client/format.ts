@@ -11,6 +11,10 @@ export function formatMoney(value: number, currency: string): string {
   return currency === "USD" ? `$${value.toFixed(2)}` : `${value.toLocaleString()} ${currency}`;
 }
 
+export function formatMegabytes(bytes: number): string {
+  return `${Math.round(bytes / 1_000_000).toLocaleString("ko-KR")}MB`;
+}
+
 export function monthDay(iso: string): string {
   const date = new Date(iso);
   return `${date.getMonth() + 1}/${date.getDate()}`;

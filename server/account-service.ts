@@ -84,7 +84,12 @@ export class AccountService {
   private readonly enabling = new Map<string, Promise<ExtraOutcome | null>>();
   /** 이어가기 작업 목록. 이어가기(handoff.ts)가 이 서비스를 쓰므로 만든 뒤 연결한다. */
   handoffList: () => HandoffView[] = () => [];
-  reasoningStatus: () => ReasoningView = () => ({ enabled: false, translator: "missing", error: null });
+  reasoningStatus: () => ReasoningView = () => ({
+    enabled: false,
+    translator: "missing",
+    error: null,
+    download: { supported: false, needed: false, receivedBytes: 0, totalBytes: 0 },
+  });
   private refreshing: Promise<void> | null = null;
 
   constructor(private readonly store: AccountStore) {}

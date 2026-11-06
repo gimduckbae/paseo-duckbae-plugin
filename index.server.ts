@@ -4,6 +4,7 @@ import {
   handoffRemoveRpc,
   handoffSeenRpc,
   handoffStartRpc,
+  installTranslatorRpc,
   limitOfferAnswerRpc,
   addClaudeApiKeyRpc,
   addClaudeLoginRpc,
@@ -164,7 +165,14 @@ export default function contribute(server: PluginServerContext) {
   server.handle(setReasoningTranslateRpc, async ({ enabled }) => {
     await ready;
     await store.setReasoningTranslate(enabled);
-    if (!enabled) await reasoning.stop();
+    // 켜는 행동이 받는 데 대한 동의다. 따로 묻는 창을 두지 않는다.
+    if (enabled) reasoning.install();
+    else await reasoning.turnOff();
+    return service.overview(false);
+  });
+  server.handle(installTranslatorRpc, async () => {
+    await ready;
+    reasoning.install();
     return service.overview(false);
   });
   server.handle(reasoningTranslateRpc, async ({ text }) => {
@@ -226,7 +234,7 @@ export default function contribute(server: PluginServerContext) {
     compact.dispose();
     questionAuto.dispose();
     updater.dispose();
-    await reasoning.stop();
+    await reasoning.dispose();
     await service.dispose();
   };
 }
