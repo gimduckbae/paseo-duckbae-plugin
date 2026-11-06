@@ -17,8 +17,11 @@ import {
   questionAutoNoteItemSchema,
   questionCardItemSchema,
 } from "./shared/question";
+import { WORKFLOW_CARD_ITEM_KIND, workflowCardItemSchema } from "./shared/workflow";
 import { QuestionAutoNoteRow } from "./client/question-auto-note";
 import { transformQuestionMessage } from "./client/question-block";
+import { transformWorkflowToolCall } from "./client/workflow-block";
+import { WorkflowCard } from "./client/workflow-card";
 import { AgentTextRow, QuestionCardRow } from "./client/question-row";
 import { registerSessionAccountButtons } from "./client/session-account";
 import { registerAccountPills } from "./client/account-pill";
@@ -93,6 +96,17 @@ export default function contribute(client: PluginClientContext) {
     version: 1,
     schema: questionAutoNoteItemSchema,
     Component: QuestionAutoNoteRow,
+  });
+  client.addTimelineTransformer({
+    id: "workflow-card",
+    query: { itemType: "tool_call" },
+    transform: ({ item }) => transformWorkflowToolCall(item),
+  });
+  client.addTimelineRenderer({
+    kind: WORKFLOW_CARD_ITEM_KIND,
+    version: 1,
+    schema: workflowCardItemSchema,
+    Component: WorkflowCard,
   });
   const removePills = registerAccountPills(client);
   const removeHeaderButtons = registerSessionAccountButtons(client);

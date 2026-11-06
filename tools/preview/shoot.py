@@ -45,6 +45,11 @@ SHOTS = [
     ("desktop-upd-applying", 1440, 900),
     ("desktop-upd-error", 1440, 900),
     ("mobile-upd-available", 390, 844),
+    ("wf-running", 760, 600),
+    ("wf-done", 760, 600),
+    ("wf-done-light", 760, 600),
+    ("wf-raw", 760, 600),
+    ("wf-m", 390, 844),
     ("compact", 760, 600),
     ("compact-light", 760, 600),
     ("compact-m", 390, 844),
@@ -58,7 +63,7 @@ SHOTS = [
     ("handoff-light", 1100, 760),
 ]
 # 캡처 전에 누를 글자
-CLICKS = {"desktop-relogin": ["다시 로그인"], "desktop-edit": ["직접 입력"], "mobile-edit": ["직접 입력"], "qc": ["한 세대 보관", "'시험용' 사유", "글자 겹침"], "qcm": ["한 세대 보관"], "limit-pick": ["예"], "q-manager": ["20번", "'아직 못 해요' 문구", "비용 화면 모델 이름표"], "q-memo": ["회원별 서버 저장"], "qm-manager": ["20번", "직접 입력"], "q-marketing": ["다 보이기", "관리자만"], "qm-marketing-light": ["다 보이기"]}
+CLICKS = {"wf-done": ["스크립트"], "desktop-relogin": ["다시 로그인"], "desktop-edit": ["직접 입력"], "mobile-edit": ["직접 입력"], "qc": ["한 세대 보관", "'시험용' 사유", "글자 겹침"], "qcm": ["한 세대 보관"], "limit-pick": ["예"], "q-manager": ["20번", "'아직 못 해요' 문구", "비용 화면 모델 이름표"], "q-memo": ["회원별 서버 저장"], "qm-manager": ["20번", "직접 입력"], "q-marketing": ["다 보이기", "관리자만"], "qm-marketing-light": ["다 보이기"]}
 only = set(sys.argv[1:])
 with sync_playwright() as p:
     browser = p.chromium.launch()

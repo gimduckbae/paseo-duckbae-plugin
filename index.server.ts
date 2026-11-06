@@ -23,6 +23,8 @@ import {
 import { compactOfferAnswerRpc, setCompactAutoRpc, setCompactThresholdRpc } from "./shared/compact";
 import { questionAnswerRpc, questionAnswersListRpc, questionAutoStopRpc } from "./shared/question";
 import { updateApplyRpc, updateCheckRpc, updateModeSetRpc, updateOfferAnswerRpc, updateStatusRpc } from "./shared/update";
+import { workflowProgressRpc } from "./shared/workflow";
+import { readWorkflowProgress } from "./server/workflow-progress";
 import { join } from "node:path";
 import { AccountService } from "./server/account-service";
 import { CompactOffers } from "./server/compact-offer";
@@ -174,6 +176,8 @@ export default function contribute(server: PluginServerContext) {
     handoffs.remove(jobId);
     return service.overview(false);
   });
+  // 돌고 있는 카드가 몇 초마다 묻는다. 계정 데이터(ready)와 상관없는 파일 읽기라 기다리지 않는다.
+  server.handle(workflowProgressRpc, ({ runId, transcriptDir }) => readWorkflowProgress(runId, transcriptDir));
   server.handle(updateStatusRpc, async (_input, { paseo }) => {
     await ready;
     await updater.flushCards(paseo);

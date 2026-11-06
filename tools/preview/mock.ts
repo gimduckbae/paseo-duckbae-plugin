@@ -1,4 +1,5 @@
 import type { AccountView, Overview } from "../../shared/accounts";
+import { PROGRESS_BY_RUN, WAITING } from "./workflow-samples";
 
 const now = Date.now();
 const after = (minutes: number) => new Date(now + minutes * 60_000).toISOString();
@@ -176,6 +177,8 @@ function updateStatus() {
 
 export async function mockRpc(name: string, _input: unknown): Promise<unknown> {
   switch (name) {
+    case "workflow.progress":
+      return PROGRESS_BY_RUN[(_input as { runId: string }).runId] ?? WAITING;
     case "update.status":
       return updateStatus();
     case "update.check":

@@ -21,6 +21,10 @@ import type { QuestionAutoNoteItem } from "../../shared/question";
 import type { CompactOfferItem } from "../../shared/compact";
 import type { LimitOfferItem } from "../../shared/accounts";
 import { AccountHandoffRow, AccountSwitchRow } from "../../client/switch-item";
+import { WorkflowCard } from "../../client/workflow-card";
+import { transformWorkflowToolCall } from "../../client/workflow-block";
+import { CARD as WF_CARD, KILLED_CARD, LAUNCH_OUTPUT, SCRIPT as WF_SCRIPT } from "./workflow-samples";
+import { NativeToolCall } from "./native-tool-call";
 import { overview } from "./mock";
 import { Icon } from "./stubs/plugin-rn";
 import { previewTheme as theme, sidebarColors } from "./theme";
@@ -442,6 +446,54 @@ function Handoff() {
   );
 }
 
+
+function WorkflowRow({ runId, card = WF_CARD }: { runId: string; card?: typeof WF_CARD }) {
+  return (
+    <WorkflowCard theme={theme} host={host} layout={{ compact: false, platform: "web" }} agentId="a1" timestamp={new Date()}
+      item={{ type: "plugin", kind: "workflow-card", version: 1, data: { ...card, runId } }} />
+  );
+}
+
+function WorkflowLabel({ text }: { text: string }) {
+  return <Text style={{ fontSize: 12, color: c.foregroundMuted }}>— {text} —</Text>;
+}
+
+function WorkflowRunning({ width }: { width: number }) {
+  return (
+    <View style={{ width, minHeight: "100vh" as never, padding: 16, gap: 10, backgroundColor: c.surface0 }}>
+      <Text style={{ fontSize: 14, lineHeight: 21, color: c.foreground }}>조사 워크플로를 띄웠습니다. 에이전트 다섯 명이 돌고 끝나면 알려 드립니다.</Text>
+      <WorkflowLabel text="띄운 직후: 아직 journal.jsonl이 없다" />
+      <WorkflowRow runId="wf-waiting" />
+      <WorkflowLabel text="도는 중: 시작한 3명 가운데 2명 끝남" />
+      <WorkflowRow runId="wf-running" />
+    </View>
+  );
+}
+
+function WorkflowDone({ width }: { width: number }) {
+  return (
+    <View style={{ width, minHeight: "100vh" as never, padding: 16, gap: 10, backgroundColor: c.surface0 }}>
+      <WorkflowLabel text="끝남: 단계 3개 · 에이전트 5명 · 걸린 시간·토큰·도구 호출" />
+      <WorkflowRow runId="wf_fdfc102b-fe0" />
+      <WorkflowLabel text="중간에 멈춘 워크플로" />
+      <WorkflowRow runId="wf_3801297a-e3e" card={KILLED_CARD} />
+    </View>
+  );
+}
+
+function WorkflowRaw({ width }: { width: number }) {
+  const broken = LAUNCH_OUTPUT.replace(/^Run ID:.*$/m, "Started run wf_fdfc102b-fe0");
+  const input = { script: WF_SCRIPT };
+  return (
+    <View style={{ width, minHeight: "100vh" as never, padding: 16, gap: 12, backgroundColor: c.surface0 }}>
+      <WorkflowLabel text={`문구가 바뀌어 못 알아봄 → 카드를 바꾸지 않음 (변환 결과 ${String(transformWorkflowToolCall({ type: "tool_call", name: "Workflow", callId: "t1", status: "completed", error: null, detail: { type: "unknown", input, output: { output: broken } } } as never))})`} />
+      <NativeToolCall name="Workflow" input={input} output={{ output: broken }} />
+      <WorkflowLabel text="펼치면: 지금까지 보이던 것 (스크립트 원문 JSON 덤프)" />
+      <NativeToolCall name="Workflow" input={input} output={{ output: broken }} expanded />
+    </View>
+  );
+}
+
 const content =
   view === "handoff" ? <Handoff /> :
   view === "mobile" || view === "mobile-edit" ? <Mobile /> :
@@ -464,6 +516,10 @@ const content =
   view === "update-m" ? <Update width={390} /> :
   view.startsWith("desktop-upd-") ? <Desktop /> :
   view.startsWith("mobile-upd-") ? <Mobile /> :
+  view === "wf-running" ? <WorkflowRunning width={760} /> :
+  view === "wf-done" ? <WorkflowDone width={760} /> :
+  view === "wf-raw" ? <WorkflowRaw width={760} /> :
+  view === "wf-m" ? <WorkflowDone width={390} /> :
   view === "compact" ? <Compact width={760} /> :
   view === "compact-m" ? <Compact width={390} /> :
   view === "limit" || view === "limit-pick" ? <Limit /> :
