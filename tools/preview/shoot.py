@@ -55,10 +55,17 @@ SHOTS = [
     ("limit-done", 760, 300),
     ("limit-done-light", 760, 300),
     ("handoff", 1100, 760),
+    ("rz-on", 760, 380),
+    ("rz-off", 760, 300),
+    ("rz-wait", 760, 300),
+    ("rz-done", 760, 500),
+    ("rz-fail", 760, 540),
+    ("desktop-rz-missing", 1440, 900),
+    ("desktop-rz-failed", 1440, 900),
     ("handoff-light", 1100, 760),
 ]
 # 캡처 전에 누를 글자
-CLICKS = {"desktop-relogin": ["다시 로그인"], "desktop-edit": ["직접 입력"], "mobile-edit": ["직접 입력"], "qc": ["한 세대 보관", "'시험용' 사유", "글자 겹침"], "qcm": ["한 세대 보관"], "limit-pick": ["예"], "q-manager": ["20번", "'아직 못 해요' 문구", "비용 화면 모델 이름표"], "q-memo": ["회원별 서버 저장"], "qm-manager": ["20번", "직접 입력"], "q-marketing": ["다 보이기", "관리자만"], "qm-marketing-light": ["다 보이기"]}
+CLICKS = {"rz-done": ["· 번역됨"], "rz-fail": ["· 번역 실패"], "desktop-relogin": ["다시 로그인"], "desktop-edit": ["직접 입력"], "mobile-edit": ["직접 입력"], "qc": ["한 세대 보관", "'시험용' 사유", "글자 겹침"], "qcm": ["한 세대 보관"], "limit-pick": ["예"], "q-manager": ["20번", "'아직 못 해요' 문구", "비용 화면 모델 이름표"], "q-memo": ["회원별 서버 저장"], "qm-manager": ["20번", "직접 입력"], "q-marketing": ["다 보이기", "관리자만"], "qm-marketing-light": ["다 보이기"]}
 only = set(sys.argv[1:])
 with sync_playwright() as p:
     browser = p.chromium.launch()

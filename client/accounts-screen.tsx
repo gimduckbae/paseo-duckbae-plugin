@@ -8,6 +8,7 @@ import { AccountCard } from "./account-card";
 import { AddAccountModal } from "./add-account-modal";
 import { CompactThresholdPicker } from "./compact-threshold";
 import { QuestionAutoPicker } from "./question-auto-picker";
+import { ReasoningSetting } from "./reasoning-setting";
 import { UpdateSection } from "./update-section";
 import { ClearFinishedHandoffs, HandoffList } from "./handoff-list";
 import { formatMoney, PROVIDER_LABEL, PROVIDERS } from "./format";
@@ -80,6 +81,15 @@ export function AccountsScreen({ theme, layout, navigation }: PluginScreenProps)
               value={overview.data.questionAuto}
               busy={actions.setQuestionAuto.isPending}
               onChange={(mode) => actions.setQuestionAuto.mutate(mode)}
+            />
+          ) : null}
+          {overview.data ? (
+            <ReasoningSetting
+              theme={theme}
+              compact={layout.compact}
+              value={overview.data.reasoning}
+              busy={actions.setReasoningTranslate.isPending}
+              onChange={(enabled) => actions.setReasoningTranslate.mutate(enabled)}
             />
           ) : null}
           <UpdateSection theme={theme} />

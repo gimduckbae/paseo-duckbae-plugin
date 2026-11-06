@@ -11,6 +11,7 @@ import type {
   Provider,
   UsageWindow,
 } from "../shared/accounts";
+import type { ReasoningView } from "../shared/reasoning";
 import { monthCostUsd, organizationId } from "./claude-api-cost";
 import { ClaudeLoginSession } from "./claude-login";
 import { enableOverage, probeClaude, type Overage } from "./claude-usage";
@@ -83,6 +84,7 @@ export class AccountService {
   private readonly enabling = new Map<string, Promise<ExtraOutcome | null>>();
   /** 이어가기 작업 목록. 이어가기(handoff.ts)가 이 서비스를 쓰므로 만든 뒤 연결한다. */
   handoffList: () => HandoffView[] = () => [];
+  reasoningStatus: () => ReasoningView = () => ({ enabled: false, translator: "missing", error: null });
   private refreshing: Promise<void> | null = null;
 
   constructor(private readonly store: AccountStore) {}
@@ -288,6 +290,7 @@ export class AccountService {
       compactAuto: this.store.compactAuto,
       compactThreshold: this.store.compactThreshold,
       questionAuto: this.store.questionAuto,
+      reasoning: this.reasoningStatus(),
       lastLimit: this.lastLimit,
       agentAccounts: { ...this.store.agentAccounts },
       handoffs: this.handoffList(),

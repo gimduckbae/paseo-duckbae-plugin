@@ -1,4 +1,6 @@
 import type { AccountView, Overview } from "../../shared/accounts";
+import type { ReasoningTranslation } from "../../shared/reasoning";
+import { REASONING_KOREAN } from "./reasoning-samples";
 
 const now = Date.now();
 const after = (minutes: number) => new Date(now + minutes * 60_000).toISOString();
@@ -26,11 +28,21 @@ function account(partial: Partial<AccountView> & Pick<AccountView, "id" | "provi
   };
 }
 
+// 추론 훔쳐보기 설정 줄의 상태별 모습. #desktop-rz-<상태>로 고른다.
+function reasoningView(): Overview["reasoning"] {
+  const variant = /-rz-([a-z]+)/.exec(location.hash)?.[1] ?? "ready";
+  if (variant === "off") return { enabled: false, translator: "ready", error: null };
+  if (variant === "missing") return { enabled: true, translator: "missing", error: null };
+  if (variant === "failed") return { enabled: true, translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory" };
+  return { enabled: true, translator: "ready", error: null };
+}
+
 export const overview: Overview = {
   swapOffer: true,
   compactAuto: true,
   compactThreshold: 20,
   questionAuto: "delay",
+  reasoning: reasoningView(),
   agentAccounts: { a1: "c1" },
   handoffs: [
     {
@@ -174,8 +186,21 @@ function updateStatus() {
   };
 }
 
+// 번역 결과. #rz-wait는 받는 중, #rz-fail은 번역기 실패, 나머지는 번역된 글.
+function reasoningTranslation(): ReasoningTranslation {
+  const view = location.hash.slice(1);
+  if (view === "rz-wait") return { status: "pending" };
+  if (view === "rz-fail") return { status: "unavailable", translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory" };
+  if (view === "rz-off") return { status: "off" };
+  return { status: "ready", markdown: REASONING_KOREAN };
+}
+
 export async function mockRpc(name: string, _input: unknown): Promise<unknown> {
   switch (name) {
+    case "reasoning.translate":
+      return reasoningTranslation();
+    case "reasoning.enabled.set":
+      return overview;
     case "update.status":
       return updateStatus();
     case "update.check":

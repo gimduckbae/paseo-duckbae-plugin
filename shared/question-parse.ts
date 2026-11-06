@@ -1,3 +1,4 @@
+import { hashText } from "./hash";
 import { QUESTION_FENCE, questionBlockSchema, type QuestionCardItem } from "./question";
 
 export interface QuestionSplit {
@@ -19,21 +20,11 @@ export function splitQuestionBlock(text: string): QuestionSplit | null {
   return { before: text.slice(0, start), raw: text.slice(bodyStart + 1, end), after: text.slice(end + close[0].length) };
 }
 
-// FNV-1a. 같은 블록이면 화면과 서버 어디서 읽어도 같은 값이 나와야 답한 기록을 찾는다.
-function hash(text: string): string {
-  let value = 0x811c9dc5;
-  for (let index = 0; index < text.length; index += 1) {
-    value ^= text.charCodeAt(index);
-    value = Math.imul(value, 0x01000193);
-  }
-  return (value >>> 0).toString(16);
-}
-
 export function parseQuestionBlock(raw: string | null): QuestionCardItem {
   if (raw === null) return { status: "writing" };
   try {
     const parsed = questionBlockSchema.safeParse(JSON.parse(raw));
-    if (parsed.success) return { status: "ready", key: hash(raw.trim()), block: parsed.data };
+    if (parsed.success) return { status: "ready", key: hashText(raw.trim()), block: parsed.data };
     return { status: "invalid", raw, error: parsed.error.issues[0]?.message ?? "형식이 맞지 않습니다." };
   } catch (error) {
     return { status: "invalid", raw, error: error instanceof Error ? error.message : String(error) };

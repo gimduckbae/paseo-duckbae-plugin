@@ -8,6 +8,7 @@ import {
   limitOfferItemSchema,
 } from "./shared/accounts";
 import { COMPACT_OFFER_ITEM_KIND, compactOfferItemSchema } from "./shared/compact";
+import { REASONING_ITEM_KIND, reasoningItemSchema } from "./shared/reasoning";
 import { UPDATE_CARD_ITEM_KIND, updateCardItemSchema } from "./shared/update";
 import {
   AGENT_TEXT_ITEM_KIND,
@@ -22,6 +23,8 @@ import { transformQuestionMessage } from "./client/question-block";
 import { AgentTextRow, QuestionCardRow } from "./client/question-row";
 import { registerSessionAccountButtons } from "./client/session-account";
 import { registerAccountPills } from "./client/account-pill";
+import { registerReasoningPeek } from "./client/reasoning-peek";
+import { ReasoningRow } from "./client/reasoning-row";
 import { AccountsScreen } from "./client/accounts-screen";
 import { CompactOfferCard } from "./client/compact-offer";
 import { LimitOfferCard } from "./client/limit-offer";
@@ -94,10 +97,18 @@ export default function contribute(client: PluginClientContext) {
     schema: questionAutoNoteItemSchema,
     Component: QuestionAutoNoteRow,
   });
+  client.addTimelineRenderer({
+    kind: REASONING_ITEM_KIND,
+    version: 1,
+    schema: reasoningItemSchema,
+    Component: ReasoningRow,
+  });
   const removePills = registerAccountPills(client);
+  const removeReasoningPeek = registerReasoningPeek(client);
   const removeHeaderButtons = registerSessionAccountButtons(client);
   return () => {
     removePills();
+    removeReasoningPeek();
     removeHeaderButtons();
   };
 }
