@@ -48,6 +48,7 @@ export class ReasoningTranslator {
   private readonly cache = new Map<string, string>();
   // Map이라 같은 문장이 여러 줄에 나와도 한 번만 보낸다.
   private readonly queue = new Map<string, string>();
+  private readonly inflight = new Set<string>();
   private readonly pending = new Map<string, (message: JsonObject) => void>();
 
   constructor(private readonly store: AccountStore) {}
@@ -63,7 +64,12 @@ export class ReasoningTranslator {
     const missing = sentencesOf(segments).filter((segment) => !this.cache.has(this.key(segment.hash)));
     if (missing.length === 0) return { status: "ready", markdown: renderReasoning(segments, (hash) => this.cache.get(this.key(hash))) };
     if (this.unusable()) return { status: "unavailable", translator: this.state, error: this.error };
-    for (const segment of missing) this.queue.set(this.key(segment.hash), segment.masked);
+    // 보낸 문장은 답이 와야 캐시에 들어간다. inflight를 안 보면 화면이 다시 물을 때마다 같은 묶음을 또 보낸다
+    // (2026-11-06 실측: 번역기가 처음 뜨는 느린 판에서 60문장이 84문장으로, 묶음 3개가 4개로).
+    for (const segment of missing) {
+      const key = this.key(segment.hash);
+      if (!this.inflight.has(key)) this.queue.set(key, segment.masked);
+    }
     void this.pump();
     return { status: "pending" };
   }
@@ -72,6 +78,7 @@ export class ReasoningTranslator {
     if (this.idleTimer) clearTimeout(this.idleTimer);
     this.idleTimer = null;
     this.queue.clear();
+    this.inflight.clear();
     const child = this.child;
     if (!child) return;
     this.quitting = true;
@@ -116,8 +123,12 @@ export class ReasoningTranslator {
     try {
       while (this.queue.size > 0) {
         const batch = [...this.queue].slice(0, BATCH);
-        for (const [key] of batch) this.queue.delete(key);
+        for (const [key] of batch) {
+          this.queue.delete(key);
+          this.inflight.add(key);
+        }
         const answer = await this.request(batch.map(([, masked]) => masked));
+        for (const [key] of batch) this.inflight.delete(key);
         if (answer.ok) {
           batch.forEach(([key], index) => this.remember(key, answer.translations[index]));
           continue;
