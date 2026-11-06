@@ -1,12 +1,26 @@
-import { useRpc, type PluginTimelineItemProps } from "@getpaseo/plugin/client";
+import { useAgent, useRpc, type PluginTimelineItemProps } from "@getpaseo/plugin/client";
 import { Icon } from "@getpaseo/plugin/client/react-native";
-import { Markdown, StreamedText } from "@getpaseo/plugin/client/ui";
+import { StreamedText } from "@getpaseo/plugin/client/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { hashText } from "../shared/hash";
-import { isInstalling, liveHead, reasoningTranslateRpc, translatorPercent, withLiveTail, type ReasoningItem, type ReasoningTranslation, type TranslatorState } from "../shared/reasoning";
+import {
+  countTokens,
+  isInstalling,
+  liveHead,
+  reasoningSpeedRpc,
+  reasoningTranslateRpc,
+  tokensPerSecond,
+  translatorPercent,
+  withLiveTail,
+  type ArrivalMark,
+  type ReasoningItem,
+  type ReasoningTranslation,
+  type TranslatorState,
+} from "../shared/reasoning";
 import { Paragraph } from "./paragraph";
+import { REASONING_FONT_SIZE, REASONING_LINE_HEIGHT, ReasoningText } from "./reasoning-text";
 
 const POLL_MS = 1_500;
 // 흘러오는 동안 1.5초는 너무 길다. 문장 하나는 100ms 안쪽에 끝나는데 그만큼 기다리면 번역이 눈에 띄게 뒤처진다.
@@ -42,6 +56,35 @@ function headerNote(phase: ReasoningItem["phase"], answer: ReasoningTranslation 
   return korean ? "번역됨" : "원문";
 }
 
+/**
+ * 호스트 StreamedText는 글자를 천천히 드러내므로(useRevealedText) 그려진 글자로 재면 호스트의 드러내는 속도를
+ * 재게 된다. 변환기가 넘겨준 text의 길이로만 잰다.
+ */
+function useArrivalSpan(text: string): { from: ArrivalMark | null; to: ArrivalMark | null } {
+  const seen = useRef(text);
+  const span = useRef<{ from: ArrivalMark | null; to: ArrivalMark | null }>({ from: null, to: null });
+  // 효과(useEffect)로 적으면 그 값을 보여 주려고 증분마다 한 번씩 더 그려야 하고, 마지막 증분은 아무도 다시 그리지 않아
+  // 늘 한 증분 뒤처진다. 사용자가 같은 PC에서 일하니 증분마다 두 번 그리지 않는다.
+  if (text !== seen.current) {
+    seen.current = text;
+    const mark: ArrivalMark = { length: text.length, atMs: Date.now() };
+    span.current = span.current.from ? { from: span.current.from, to: mark } : { from: mark, to: null };
+  }
+  return span.current;
+}
+
+/** 모르는 값을 한 칸에 뭉뚱그리면 모델별 평균이 뜻을 잃는다. */
+function useReportSpeedOnce(agentId: string, phase: ReasoningItem["phase"], perSecond: number | null): void {
+  const model = useAgent(agentId, (agent) => (agent.model ? `${agent.provider}/${agent.model}` : null));
+  const report = useRpc(reasoningSpeedRpc);
+  const reported = useRef(false);
+  useEffect(() => {
+    if (phase !== "complete" || perSecond === null || !model || reported.current) return;
+    reported.current = true;
+    void report({ model, tokensPerSecond: perSecond }).catch((error: unknown) => console.error("Reasoning speed report failed", error));
+  }, [phase, perSecond, model, report]);
+}
+
 function useDebouncedAsk(text: string, phase: ReasoningItem["phase"]): string {
   const head = useMemo(() => (phase === "complete" ? text : liveHead(text)), [text, phase]);
   const [asked, setAsked] = useState(head);
@@ -58,10 +101,15 @@ function useDebouncedAsk(text: string, phase: ReasoningItem["phase"]): string {
   return asked;
 }
 
-export function ReasoningRow({ theme, item }: PluginTimelineItemProps<ReasoningItem>) {
+export function ReasoningRow({ theme, item, agentId }: PluginTimelineItemProps<ReasoningItem>) {
   const { text, phase } = item.data;
   const translate = useRpc(reasoningTranslateRpc);
   const asked = useDebouncedAsk(text, phase);
+  const span = useArrivalSpan(text);
+  // 번역 되묻기(1.5초, 흘러올 땐 0.3초)마다 다시 그려진다. 8,000자짜리 줄을 그때마다 두 번 훑지 않는다.
+  const tokens = useMemo(() => countTokens(text), [text]);
+  const perSecond = useMemo(() => tokensPerSecond(text, span.from, span.to), [text, span.from, span.to]);
+  useReportSpeedOnce(agentId, phase, perSecond);
   const key = useMemo(() => hashText(asked), [asked]);
   // 흘러오는 것을 보고 있던 줄은 접지 않는다. 다 쓴 뒤 접으면 읽던 자리가 위로 밀린다.
   // 지난 대화에서 불러온 줄은 접은 채로 시작한다 — 번역이 오자마자 수십 줄이 함께 펼쳐지면 화면이 튄다.
@@ -100,11 +148,15 @@ export function ReasoningRow({ theme, item }: PluginTimelineItemProps<ReasoningI
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(!open)}
-        style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4 }}
+        // 좁은 화면에서는 머리글이 한 줄에 다 들어가지 않는다. 잘라 내면 새로 붙인 토큰·속도가 먼저 사라진다.
+        style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 6, paddingVertical: 4 }}
       >
         <Icon name={open ? "ChevronDown" : "ChevronRight"} size={14} color={theme.colors.foregroundMuted} />
         <Icon name="Brain" size={14} color={theme.colors.foregroundMuted} />
-        <Text style={{ fontSize: 13, color: theme.colors.foregroundMuted }}>생각 · {text.length.toLocaleString("ko-KR")}자</Text>
+        <Text style={{ fontSize: 13, color: theme.colors.foregroundMuted }}>
+          생각 · {text.length.toLocaleString("ko-KR")}자 · {tokens.toLocaleString("ko-KR")}토큰
+          {perSecond === null ? "" : ` · 초당 ${Math.round(perSecond).toLocaleString("ko-KR")}토큰`}
+        </Text>
         <Text style={{ fontSize: 12, color: theme.colors.foregroundMuted }}>· {note}</Text>
       </Pressable>
       {open ? (
@@ -114,13 +166,13 @@ export function ReasoningRow({ theme, item }: PluginTimelineItemProps<ReasoningI
           ) : null}
           {phase === "streaming" ? (
             // 글을 바꿔 넣어도 호스트는 이미 드러낸 글자 수를 지킨다(0.15 번들 retargetTextReveal). 처음부터 다시 흘리지 않는다.
-            <StreamedText text={korean ?? text} phase="streaming" style={{ fontSize: 13, lineHeight: 20, color: theme.colors.foregroundMuted }} />
-          ) : korean && !source ? (
-            <Markdown>{korean}</Markdown>
+            <StreamedText
+              text={korean ?? text}
+              phase="streaming"
+              style={{ fontSize: REASONING_FONT_SIZE, lineHeight: REASONING_LINE_HEIGHT, color: theme.colors.foregroundMuted }}
+            />
           ) : (
-            <Paragraph selectable style={{ fontSize: 13, lineHeight: 20, color: theme.colors.foregroundMuted }}>
-              {text}
-            </Paragraph>
+            <ReasoningText theme={theme} text={korean && !source ? korean : text} />
           )}
           {korean && phase === "complete" ? (
             <Pressable accessibilityRole="button" onPress={() => setSource(!source)} style={{ alignSelf: "flex-start", paddingVertical: 2 }}>

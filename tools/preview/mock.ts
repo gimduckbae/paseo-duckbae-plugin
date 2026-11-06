@@ -32,24 +32,35 @@ function account(partial: Partial<AccountView> & Pick<AccountView, "id" | "provi
 const DOWNLOAD_DONE = { supported: true, needed: false, receivedBytes: 0, totalBytes: 0 };
 const DOWNLOAD_HALF = { supported: true, needed: true, receivedBytes: 84_301_312, totalBytes: TRANSLATOR_BYTES };
 
+// 표본이 없는 모습은 #desktop-rz-nospeed로 본다.
+// gpt-7-nova는 모델 목록에 없는 이름이다 — 이름을 못 찾으면 아이디를 그대로 보여 주는 모습.
+const SPEEDS = [
+  { model: "claude/claude-sonnet-5-5", samples: 36, tokensPerSecond: 142.8 },
+  { model: "claude/claude-opus-5-5", samples: 128, tokensPerSecond: 97.4 },
+  { model: "codex/gpt-6-astra", samples: 41, tokensPerSecond: 62.1 },
+  { model: "codex/gpt-7-nova", samples: 3, tokensPerSecond: 44.2 },
+];
+
 // 추론 훔쳐보기 설정 줄의 상태별 모습. #desktop-rz-<상태>로 고른다.
 function reasoningView(): Overview["reasoning"] {
   const variant = /-rz-([a-z]+)/.exec(location.hash)?.[1] ?? "ready";
-  if (variant === "off") return { enabled: false, translator: "ready", error: null, download: DOWNLOAD_DONE };
-  if (variant === "missing") return { enabled: true, translator: "missing", error: null, download: { ...DOWNLOAD_DONE, needed: true } };
-  if (variant === "nowin") return { enabled: false, translator: "missing", error: null, download: { supported: false, needed: false, receivedBytes: 0, totalBytes: 0 } };
-  if (variant === "downloading") return { enabled: true, translator: "downloading", error: null, download: DOWNLOAD_HALF };
-  if (variant === "extracting") return { enabled: true, translator: "extracting", error: null, download: { ...DOWNLOAD_HALF, receivedBytes: TRANSLATOR_BYTES } };
+  const speeds = variant === "nospeed" ? [] : SPEEDS;
+  if (variant === "off") return { enabled: false, translator: "ready", error: null, download: DOWNLOAD_DONE, speeds };
+  if (variant === "missing") return { enabled: true, translator: "missing", error: null, download: { ...DOWNLOAD_DONE, needed: true }, speeds };
+  if (variant === "nowin") return { enabled: false, translator: "missing", error: null, download: { supported: false, needed: false, receivedBytes: 0, totalBytes: 0 }, speeds };
+  if (variant === "downloading") return { enabled: true, translator: "downloading", error: null, download: DOWNLOAD_HALF, speeds };
+  if (variant === "extracting") return { enabled: true, translator: "extracting", error: null, download: { ...DOWNLOAD_HALF, receivedBytes: TRANSLATOR_BYTES }, speeds };
   if (variant === "dlfail") {
     return {
       enabled: true,
       translator: "failed",
       error: "opus-mt-tc-big-en-ko-ct2-int8.zip을 내려받지 못했습니다. fetch failed",
       download: DOWNLOAD_HALF,
+      speeds,
     };
   }
-  if (variant === "failed") return { enabled: true, translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory", download: DOWNLOAD_DONE };
-  return { enabled: true, translator: "ready", error: null, download: DOWNLOAD_DONE };
+  if (variant === "failed") return { enabled: true, translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory", download: DOWNLOAD_DONE, speeds };
+  return { enabled: true, translator: "ready", error: null, download: DOWNLOAD_DONE, speeds };
 }
 
 export const overview: Overview = {
@@ -217,7 +228,7 @@ function reasoningTranslation(input: { text: string }): ReasoningTranslation {
   const view = location.hash.slice(1);
   if (view === "rz-wait") return { status: "pending" };
   if (view === "rz-dl") return { status: "unavailable", translator: "downloading", error: null, download: DOWNLOAD_HALF };
-  if (view === "rz-fail" || view === "rz-live-fail") {
+  if (view === "rz-fail" || view === "rz-live-fail" || view === "rz-speedfail") {
     return { status: "unavailable", translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory", download: DOWNLOAD_DONE };
   }
   if (view === "rz-off") return { status: "off" };
@@ -230,6 +241,8 @@ export async function mockRpc(name: string, _input: unknown): Promise<unknown> {
       return PROGRESS_BY_RUN[(_input as { runId: string }).runId] ?? WAITING;
     case "reasoning.translate":
       return reasoningTranslation(_input as { text: string });
+    case "reasoning.speed.add":
+      return { ok: true };
     case "reasoning.enabled.set":
       return overview;
     case "update.status":

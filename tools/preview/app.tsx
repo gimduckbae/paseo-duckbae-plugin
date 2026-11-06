@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Text, View } from "react-native";
 import { AccountsScreen } from "../../client/accounts-screen";
@@ -403,6 +404,18 @@ function ReasoningLine({ text, phase }: { text: string; phase: "streaming" | "co
   );
 }
 
+// 초당 토큰은 증분 사이 간격으로만 나온다. 멈춘 글로는 잴 수 없어 미리보기에서도 실제로 흘려 보낸다.
+// shoot.py가 800ms 뒤에 찍으므로, 그때 흘러오는 중이거나 끝나 있도록 간격을 고른다.
+function ReasoningStream({ source, from, chunk, every }: { source: string; from: number; chunk: number; every: number }) {
+  const [cut, setCut] = useState(from);
+  useEffect(() => {
+    if (cut >= source.length) return undefined;
+    const timer = setTimeout(() => setCut((at) => Math.min(source.length, at + chunk)), every);
+    return () => clearTimeout(timer);
+  }, [cut, source, chunk, every]);
+  return <ReasoningLine text={source.slice(0, cut)} phase={cut >= source.length ? "complete" : "streaming"} />;
+}
+
 // Paseo 기본 생각 줄(앱 agent-stream/view.tsx ThoughtSlot) 흉내. 알약을 끄면 이 모습으로 돌아간다.
 function NativeThoughtLine({ text }: { text: string }) {
   return (
@@ -450,19 +463,26 @@ function ComposerWithPill({ on }: { on: boolean }) {
   );
 }
 
-function Reasoning({ variant }: { variant: string }) {
+function Reasoning({ variant, width = 760 }: { variant: string; width?: number }) {
   return (
-    <View style={{ width: 760, padding: 24, gap: 12, backgroundColor: c.surface0 }}>
+    <View style={{ width, padding: 24, gap: 12, backgroundColor: c.surface0 }}>
       <View style={{ alignSelf: "flex-end", maxWidth: 520, padding: 12, borderRadius: 10, backgroundColor: c.surface2 }}>
         <Text style={{ fontSize: 14, color: c.foreground }}>main.py 수정 전에 import 먼저 확인해줘</Text>
       </View>
       {variant === "off" ? <NativeThoughtLine text={REASONING_SOURCE} /> : null}
       {variant === "on" ? <ReasoningLine text={REASONING_LIVE} phase="streaming" /> : null}
       {variant.startsWith("live") ? <ReasoningLine text={REASONING_LIVE_HALF} phase="streaming" /> : null}
+      {variant === "speed" ? <ReasoningStream source={REASONING_SOURCE} from={0} chunk={12} every={120} /> : null}
+      {variant === "speedlist" ? <ReasoningStream source={REASONING_LIVE_HALF} from={114} chunk={12} every={120} /> : null}
+      {variant === "speedfail" ? <ReasoningStream source={REASONING_SOURCE} from={0} chunk={12} every={120} /> : null}
+      {variant === "speeddone" ? <Text style={{ fontSize: 12, color: c.foregroundMuted }}>— 방금 흘러와 끝난 줄(속도 남음) —</Text> : null}
+      {variant === "speeddone" ? <ReasoningStream source={REASONING_SOURCE} from={0} chunk={24} every={60} /> : null}
+      {variant === "speeddone" ? <Text style={{ fontSize: 12, color: c.foregroundMuted }}>— 지난 대화에서 불러온 줄(속도 없음) —</Text> : null}
+      {variant === "speeddone" ? <ReasoningLine text={REASONING_SOURCE} phase="complete" /> : null}
       {variant === "on" || variant === "wait" || variant === "done" || variant === "fail" || variant === "dl" ? (
         <ReasoningLine text={REASONING_SOURCE} phase="complete" />
       ) : null}
-      <Text style={{ fontSize: 14, lineHeight: 21, color: c.foreground }}>config/app.toml을 읽고 import를 확인했습니다. 고칠 곳은 두 군데입니다.</Text>
+      <Text style={{ fontSize: 15, lineHeight: 21, color: c.foreground }}>config/app.toml을 읽고 import를 확인했습니다. 고칠 곳은 두 군데입니다.</Text>
       <View style={{ height: 12 }} />
       <ComposerWithPill on={variant !== "off"} />
     </View>
@@ -579,6 +599,7 @@ function WorkflowRaw({ width }: { width: number }) {
 const content =
   view === "handoff" ? <Handoff /> :
   view.startsWith("rz-") ? <Reasoning variant={view.slice(3)} /> :
+  view.startsWith("rzm-") ? <Reasoning variant={view.slice(4)} width={390} /> :
   view.startsWith("desktop-rz-") ? <Desktop /> :
   view === "mobile" || view === "mobile-edit" ? <Mobile /> :
   view === "desktop-edit" ? <Desktop /> :

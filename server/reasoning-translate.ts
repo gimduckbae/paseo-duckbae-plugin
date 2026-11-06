@@ -2,7 +2,7 @@ import { spawnProcess, terminateProcess } from "@getpaseo/plugin/server";
 import type { ChildProcessWithoutNullStreams } from "node:child_process";
 import { existsSync } from "node:fs";
 import { basename } from "node:path";
-import type { ReasoningTranslation, ReasoningView, TranslatorState } from "../shared/reasoning";
+import type { ReasoningTranslation, TranslatorState, TranslatorStatus } from "../shared/reasoning";
 import { onJsonLines, withTimeout, type JsonObject } from "./json-lines";
 import { renderReasoning, segmentReasoning, sentencesOf } from "./reasoning-text";
 import type { AccountStore } from "./store";
@@ -61,7 +61,7 @@ export class ReasoningTranslator {
     private readonly download: TranslatorDownload = new TranslatorDownload(store),
   ) {}
 
-  status(): ReasoningView {
+  status(): TranslatorStatus {
     if (this.state !== "loading" && this.state !== "failed") this.state = this.paths() ? "ready" : "missing";
     const install = this.download.status();
     const installing = install.phase === "idle" ? null : install.phase;

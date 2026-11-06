@@ -9,6 +9,7 @@ import { AddAccountModal } from "./add-account-modal";
 import { CompactThresholdPicker } from "./compact-threshold";
 import { QuestionAutoPicker } from "./question-auto-picker";
 import { ReasoningSetting } from "./reasoning-setting";
+import { ReasoningSpeeds } from "./reasoning-speeds";
 import { UpdateSection } from "./update-section";
 import { ClearFinishedHandoffs, HandoffList } from "./handoff-list";
 import { formatMoney, PROVIDER_LABEL, PROVIDERS } from "./format";
@@ -94,6 +95,7 @@ export function AccountsScreen({ theme, layout, navigation }: PluginScreenProps)
               onInstall={() => actions.installTranslator.mutate()}
             />
           ) : null}
+          {overview.data?.reasoning.speeds.length ? <ReasoningSpeeds theme={theme} speeds={overview.data.reasoning.speeds} /> : null}
           <UpdateSection theme={theme} />
         </View>
 

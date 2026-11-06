@@ -89,6 +89,7 @@ export class AccountService {
     translator: "missing",
     error: null,
     download: { supported: false, needed: false, receivedBytes: 0, totalBytes: 0 },
+    speeds: [],
   });
   private refreshing: Promise<void> | null = null;
 
