@@ -35,6 +35,25 @@ export const reasoningViewSchema = z.object({
 });
 export type ReasoningView = z.infer<typeof reasoningViewSchema>;
 
+/**
+ * 흘러오는 동안 번역에 넘길 머리. 꼬리까지 넘기면 문장이 완성될 때마다 다른 번역이 나와 이미 읽던 글자가 바뀐다.
+ *
+ * server/reasoning-text.ts의 TERMINATOR는 숫자가 뒤따르는 마침표를 종결로 보지 않는다. 종결 뒤 공백을 보고 자르지 않으면
+ * "0." 뒤에 "13"이 흘러온 순간 번역해 둔 문장이 다른 문장이 되고 화면의 글자가 뒤로 밀린다.
+ */
+const SENTENCE_END = /[.!?]+(?=\s)/g;
+export function liveHead(text: string): string {
+  let cut = 0;
+  for (const match of text.matchAll(SENTENCE_END)) cut = (match.index ?? 0) + match[0].length;
+  return text.slice(0, cut);
+}
+
+/** 번역이 원문과 같거나(번역할 것이 없었다) 다른 글의 번역이면 null이다. 그때 화면은 원문을 그린다. */
+export function withLiveTail(translated: { head: string; korean: string } | null, text: string): string | null {
+  if (!translated || translated.korean === translated.head || !text.startsWith(translated.head)) return null;
+  return translated.korean + text.slice(translated.head.length);
+}
+
 /** pending이면 화면이 다시 물어야 한다. off·unavailable이면 원문을 그린다. */
 export const reasoningTranslationSchema = z.discriminatedUnion("status", [
   z.object({ status: z.literal("off") }),

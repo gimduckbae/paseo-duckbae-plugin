@@ -26,7 +26,7 @@ import { transformWorkflowToolCall } from "../../client/workflow-block";
 import { CARD as WF_CARD, KILLED_CARD, LAUNCH_OUTPUT, SCRIPT as WF_SCRIPT } from "./workflow-samples";
 import { NativeToolCall } from "./native-tool-call";
 import { ReasoningRow } from "../../client/reasoning-row";
-import { REASONING_LIVE, REASONING_SOURCE } from "./reasoning-samples";
+import { REASONING_LIVE, REASONING_LIVE_HALF, REASONING_SOURCE } from "./reasoning-samples";
 import { overview } from "./mock";
 import { Icon } from "./stubs/plugin-rn";
 import { previewTheme as theme, sidebarColors } from "./theme";
@@ -458,6 +458,7 @@ function Reasoning({ variant }: { variant: string }) {
       </View>
       {variant === "off" ? <NativeThoughtLine text={REASONING_SOURCE} /> : null}
       {variant === "on" ? <ReasoningLine text={REASONING_LIVE} phase="streaming" /> : null}
+      {variant.startsWith("live") ? <ReasoningLine text={REASONING_LIVE_HALF} phase="streaming" /> : null}
       {variant === "on" || variant === "wait" || variant === "done" || variant === "fail" || variant === "dl" ? (
         <ReasoningLine text={REASONING_SOURCE} phase="complete" />
       ) : null}

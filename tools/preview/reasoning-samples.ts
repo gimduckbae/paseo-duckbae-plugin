@@ -14,3 +14,8 @@ export const REASONING_KOREAN = `먼저 파일을 봅니다. 사용자가 \`app/
 시험이 실패하면 변경을 되돌리고 알립니다.`;
 
 export const REASONING_LIVE = "Let me check the file first. The user wants `app/web/main.py` changed, so I should read src/";
+
+export const REASONING_LIVE_HALF = `Let me check the file first. The user wants \`app/web/main.py\` changed, so I should read src/main.ts and look at the imports.
+
+- First I read the config under config/app.toml.
+- Then I run the te`;

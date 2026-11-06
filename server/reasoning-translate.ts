@@ -8,7 +8,11 @@ import { renderReasoning, segmentReasoning, sentencesOf } from "./reasoning-text
 import type { AccountStore } from "./store";
 import { TranslatorDownload } from "./translator-download";
 
-const THREADS = 4;
+// 흘러오는 동안 문장이 끝날 때마다 번역을 돌려서 번역기가 코어를 잡는 시간이 길어졌다. 사용자가 같은 PC에서 일한다.
+// 2026-11-06 실측(이 PC, 실제 번역기): 문장 하나 2스레드 106ms / 4스레드 77ms, 8,248자 전체는 2,393ms·코어 시간 7.4s / 1,506ms·9.9s.
+// 29ms는 화면의 400ms 디바운스에 묻히고, 같은 일에 코어 시간은 4분의 1이 줄며 동시에 잡는 코어도 절반이다.
+// 캐시 열쇠에 이 값이 들어가니 흘러올 때만 줄이면 생각이 끝날 때 캐시가 전부 빗나간다.
+const THREADS = 2;
 const READY_MS = 30_000;
 const REQUEST_MS = 120_000;
 // 번역기 프로세스가 수백 MB를 쓴다. 다시 띄우는 비용은 1초 안쪽이라 쉬면 끄는 쪽이 싸다.
@@ -29,7 +33,7 @@ function errorText(error: unknown): string {
 }
 
 /**
- * 번역기와의 약속(실행 파일은 아직 없다): 실행 `opus-mt-ko.exe --model <폴더> --threads 4`, 뜨면 `{"ready":true,"model":"..."}`,
+ * 번역기와의 약속(실행 파일은 아직 없다): 실행 `opus-mt-ko.exe --model <폴더> --threads <수>`, 뜨면 `{"ready":true,"model":"..."}`,
  * 요청 `{"id":"..","segments":[..]}` → 응답 `{"id":"..","translations":[..]}` 또는 `{"id":"..","error":".."}`, 끝낼 때 `{"type":"quit"}`.
  *
  * 캐시가 글 전체가 아니라 문장 단위인 이유: 생각 글에는 "Let me check the file." 같은 같은 문장이 하루에 수백 번 나온다.

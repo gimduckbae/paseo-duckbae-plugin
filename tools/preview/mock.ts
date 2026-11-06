@@ -1,7 +1,7 @@
 import type { AccountView, Overview } from "../../shared/accounts";
 import { PROGRESS_BY_RUN, WAITING } from "./workflow-samples";
 import { TRANSLATOR_BYTES, type ReasoningTranslation } from "../../shared/reasoning";
-import { REASONING_KOREAN } from "./reasoning-samples";
+import { REASONING_KOREAN, REASONING_SOURCE } from "./reasoning-samples";
 
 const now = Date.now();
 const after = (minutes: number) => new Date(now + minutes * 60_000).toISOString();
@@ -201,15 +201,27 @@ function updateStatus() {
   };
 }
 
-function reasoningTranslation(): ReasoningTranslation {
+const SPLIT = /(?<=[.!?])\s+/;
+// 서버는 문장 단위로 번역해 캐시한다. 흘러오는 중간에 오는 머리도 끝난 문장만큼 한국어로 돌려줘야 실제 모습이 나온다.
+function koreanFor(text: string): string {
+  const english = REASONING_SOURCE.split(SPLIT);
+  const korean = REASONING_KOREAN.split(SPLIT);
+  let out = text;
+  english.forEach((sentence, index) => {
+    out = out.split(sentence).join(korean[index] ?? sentence);
+  });
+  return out;
+}
+
+function reasoningTranslation(input: { text: string }): ReasoningTranslation {
   const view = location.hash.slice(1);
   if (view === "rz-wait") return { status: "pending" };
   if (view === "rz-dl") return { status: "unavailable", translator: "downloading", error: null, download: DOWNLOAD_HALF };
-  if (view === "rz-fail") {
+  if (view === "rz-fail" || view === "rz-live-fail") {
     return { status: "unavailable", translator: "failed", error: "번역기가 멈췄습니다 (3). failed to load model: out of memory", download: DOWNLOAD_DONE };
   }
   if (view === "rz-off") return { status: "off" };
-  return { status: "ready", markdown: REASONING_KOREAN };
+  return { status: "ready", markdown: koreanFor(input.text) };
 }
 
 export async function mockRpc(name: string, _input: unknown): Promise<unknown> {
@@ -217,7 +229,7 @@ export async function mockRpc(name: string, _input: unknown): Promise<unknown> {
     case "workflow.progress":
       return PROGRESS_BY_RUN[(_input as { runId: string }).runId] ?? WAITING;
     case "reasoning.translate":
-      return reasoningTranslation();
+      return reasoningTranslation(_input as { text: string });
     case "reasoning.enabled.set":
       return overview;
     case "update.status":

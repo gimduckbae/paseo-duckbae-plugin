@@ -61,6 +61,8 @@ SHOTS = [
     ("limit-done-light", 760, 300),
     ("handoff", 1100, 760),
     ("rz-on", 760, 380),
+    ("rz-live", 760, 380),
+    ("rz-live-fail", 760, 420),
     ("rz-off", 760, 300),
     ("rz-wait", 760, 300),
     ("rz-done", 760, 500),
