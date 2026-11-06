@@ -33,6 +33,24 @@ function errorText(error: unknown): string {
 }
 
 /**
+ * 번역기가 같은 낱말을 되풀이하는 상태에 빠지면 그 문장은 원문으로 둔다.
+ * 2026-11-06 실측: 멀쩡한 번역은 원문의 0.4~0.7배 길이에 같은 낱말이 많아야 6번이었고,
+ * 무너진 번역은 15배 길이에 245번이었다. 한글 입력은 segmentReasoning이 미리 거르지만
+ * 다른 원인으로도 빠질 수 있어 받은 글에서 한 번 더 본다.
+ */
+function degenerate(source: string, korean: string): boolean {
+  if (korean.length > source.length * 3) return true;
+  const counts = new Map<string, number>();
+  for (const word of korean.split(/\s+/)) {
+    if (!word) continue;
+    const next = (counts.get(word) ?? 0) + 1;
+    if (next >= 8) return true;
+    counts.set(word, next);
+  }
+  return false;
+}
+
+/**
  * 번역기와의 약속(실행 파일은 아직 없다): 실행 `opus-mt-ko.exe --model <폴더> --threads <수>`, 뜨면 `{"ready":true,"model":"..."}`,
  * 요청 `{"id":"..","segments":[..]}` → 응답 `{"id":"..","translations":[..]}` 또는 `{"id":"..","error":".."}`, 끝낼 때 `{"type":"quit"}`.
  *
@@ -166,7 +184,10 @@ export class ReasoningTranslator {
         const answer = await this.request(batch.map(([, masked]) => masked));
         for (const [key] of batch) this.inflight.delete(key);
         if (answer.ok) {
-          batch.forEach(([key], index) => this.remember(key, answer.translations[index]));
+          batch.forEach(([key, masked], index) => {
+            const korean = answer.translations[index];
+            this.remember(key, degenerate(masked, korean) ? masked : korean);
+          });
           continue;
         }
         this.fail(answer.error);

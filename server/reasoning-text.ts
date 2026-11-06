@@ -14,6 +14,7 @@ const LINE_PREFIX = /^[ \t>]*(?:(?:[-*+]|\d+[.)]|#{1,6})[ \t]+)?/;
 const TERMINATOR = /[.!?]+(?!\d)/g;
 // 경로·중괄호·꺾쇠가 든 조각은 번역기가 쪼개거나 번역해 버린다.
 const RISKY = /[\\/{}()<>]/;
+const HANGUL = /[가-힣ᄀ-ᇿ㄰-㆏]/;
 // 자리표시자 모양을 바꾸지 마라. opus-mt-tc-big-en-ko는 `[[1]]`을 전부 잃고 문장까지 무너뜨린다
 // (2026-11-06 실측: 코드가 든 실제 문장 10개에서 표시 보존 0/19, "[잡담] 저도 checked이가 [2]는데"로 깨짐).
 // 같은 문장에서 XQnQX·QQQn·zqnzq는 19/19 보존했다.
@@ -105,7 +106,14 @@ export function segmentReasoning(text: string): ReasoningSegment[] {
       const leading = /^\s*/.exec(piece)?.[0] ?? "";
       const trimmed = piece.trim();
       if (leading) keep(leading);
-      if (trimmed) segments.push(sentence(trimmed, tokens));
+      // 한글이 섞인 문장은 번역기에 넣지 않는다. en→ko 모델이라 한국어 입력에서 무너진다
+      // (2026-11-06 실측: 34자 한국어 한 문장이 511자로 불어나고 같은 낱말이 245번 되풀이됐다.
+      //  한영 섞인 문장도 "이 문서는 현재 번역되지 않았습니다"처럼 엉뚱한 글이 나왔다).
+      if (trimmed) {
+        const restored = restore(trimmed, tokens);
+        if (HANGUL.test(restored)) keep(restored);
+        else segments.push(sentence(trimmed, tokens));
+      }
       const trailing = piece.slice(leading.length + trimmed.length);
       if (trailing) keep(trailing);
     }
