@@ -1,6 +1,6 @@
 import { useRpc, type PluginClientContext } from "@getpaseo/plugin/client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { activateRpc, overviewRpc, removeAccountRpc, setQuestionAutoRpc, setSwapOfferRpc, type Overview } from "../shared/accounts";
+import { activateRpc, overviewRpc, removeAccountRpc, setQuestionAutoRpc, setReasoningTranslateRpc, setSwapOfferRpc, type Overview } from "../shared/accounts";
 import { setCompactAutoRpc, setCompactThresholdRpc } from "../shared/compact";
 import type { QuestionAutoMode } from "../shared/question";
 
@@ -24,6 +24,7 @@ export function useAccountActions() {
   const setCompactAuto = useRpc(setCompactAutoRpc);
   const setCompactThreshold = useRpc(setCompactThresholdRpc);
   const setQuestionAuto = useRpc(setQuestionAutoRpc);
+  const setReasoningTranslate = useRpc(setReasoningTranslateRpc);
   const remove = useRpc(removeAccountRpc);
   const onSuccess = (data: Overview) => queryClient.setQueryData(OVERVIEW_KEY, data);
   return {
@@ -33,6 +34,7 @@ export function useAccountActions() {
     setCompactAuto: useMutation({ mutationFn: (enabled: boolean) => setCompactAuto({ enabled }), onSuccess }),
     setCompactThreshold: useMutation({ mutationFn: (percent: number) => setCompactThreshold({ percent }), onSuccess }),
     setQuestionAuto: useMutation({ mutationFn: (mode: QuestionAutoMode) => setQuestionAuto({ mode }), onSuccess }),
+    setReasoningTranslate: useMutation({ mutationFn: (enabled: boolean) => setReasoningTranslate({ enabled }), onSuccess }),
     remove: useMutation({ mutationFn: (accountId: string) => remove({ accountId }), onSuccess }),
   };
 }

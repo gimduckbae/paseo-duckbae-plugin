@@ -1,6 +1,7 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
 import { questionAutoModeSchema } from "./question";
+import { reasoningViewSchema } from "./reasoning";
 
 export const providerSchema = z.enum(["claude", "codex", "grok"]);
 export type Provider = z.infer<typeof providerSchema>;
@@ -109,6 +110,7 @@ export const overviewSchema = z.object({
   compactThreshold: z.number(),
   /** 에이전트 질문 자동 답변 방식. */
   questionAuto: questionAutoModeSchema,
+  reasoning: reasoningViewSchema,
   lastLimit: limitEventSchema.nullable(),
   /** 에이전트 ID → 그 에이전트가 묶인 계정 ID. */
   agentAccounts: z.record(z.string(), z.string()),
@@ -137,6 +139,12 @@ export const setSwapOfferRpc = defineRpc({
 export const setQuestionAutoRpc = defineRpc({
   name: "questions.auto.set",
   input: z.object({ mode: questionAutoModeSchema }),
+  output: overviewSchema,
+});
+
+export const setReasoningTranslateRpc = defineRpc({
+  name: "reasoning.enabled.set",
+  input: z.object({ enabled: z.boolean() }),
   output: overviewSchema,
 });
 

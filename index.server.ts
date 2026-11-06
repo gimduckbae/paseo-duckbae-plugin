@@ -18,10 +18,12 @@ import {
   setClaudeTokenRpc,
   setMonthlyCreditRpc,
   setQuestionAutoRpc,
+  setReasoningTranslateRpc,
   setSwapOfferRpc,
 } from "./shared/accounts";
 import { compactOfferAnswerRpc, setCompactAutoRpc, setCompactThresholdRpc } from "./shared/compact";
 import { questionAnswerRpc, questionAnswersListRpc, questionAutoStopRpc } from "./shared/question";
+import { reasoningTranslateRpc } from "./shared/reasoning";
 import { updateApplyRpc, updateCheckRpc, updateModeSetRpc, updateOfferAnswerRpc, updateStatusRpc } from "./shared/update";
 import { workflowProgressRpc } from "./shared/workflow";
 import { readWorkflowProgress } from "./server/workflow-progress";
@@ -33,6 +35,7 @@ import { registerHooks } from "./server/hooks";
 import { answerSwap } from "./server/limit-offer";
 import { QuestionAuto } from "./server/question-auto";
 import { QuestionStore } from "./server/questions";
+import { ReasoningTranslator } from "./server/reasoning-translate";
 import { PluginUpdater } from "./server/updater";
 import { settleWithin } from "./server/json-lines";
 import { AccountStore } from "./server/store";
@@ -49,6 +52,8 @@ export default function contribute(server: PluginServerContext) {
   const compact = new CompactOffers(store);
   const questionAuto = new QuestionAuto(store, questions);
   const questionState = (agentId: string) => ({ ...questions.list(agentId), pending: questionAuto.pendingOf(agentId) });
+  const reasoning = new ReasoningTranslator(store);
+  service.reasoningStatus = () => reasoning.status();
   const updater = new PluginUpdater(store, () => service.loginPending || handoffs.list().some((job) => job.status === "pending"));
   const ready = Promise.all([store.load(), questions.load()]);
   let timer: NodeJS.Timeout | null = null;
@@ -156,6 +161,16 @@ export default function contribute(server: PluginServerContext) {
     await store.setQuestionAuto(mode);
     return service.overview(false);
   });
+  server.handle(setReasoningTranslateRpc, async ({ enabled }) => {
+    await ready;
+    await store.setReasoningTranslate(enabled);
+    if (!enabled) await reasoning.stop();
+    return service.overview(false);
+  });
+  server.handle(reasoningTranslateRpc, async ({ text }) => {
+    await ready;
+    return reasoning.translate(text);
+  });
   server.handle(questionAnswersListRpc, async ({ agentId }) => {
     await ready;
     return questionState(agentId);
@@ -211,6 +226,7 @@ export default function contribute(server: PluginServerContext) {
     compact.dispose();
     questionAuto.dispose();
     updater.dispose();
+    await reasoning.stop();
     await service.dispose();
   };
 }

@@ -50,6 +50,10 @@ interface StoredState {
   compactThreshold?: number;
   /** 에이전트 질문 자동 답변. 이 필드가 생기기 전 state.json에는 없다(사용자 대기). */
   questionAuto?: QuestionAutoMode;
+  /** 추론 훔쳐보기. 에이전트별이 아니라 전역이고, 이 필드가 생기기 전 state.json에는 없다(꺼짐). */
+  reasoningTranslate?: boolean;
+  /** 번역기 실행 파일·모델 자리를 기본값에서 옮길 때만 쓴다. 내려받기 기능이 없어 손으로 적는다. */
+  translator?: { exe?: string; model?: string };
   /** 플러그인 업데이트 방식. 없으면 아직 고르지 않았다. */
   updateMode?: UpdateMode;
   /** 업데이트 방식을 묻는 카드를 붙였다. */
@@ -132,6 +136,18 @@ export class AccountStore {
 
   get questionAuto(): QuestionAutoMode {
     return this.state.questionAuto ?? "wait";
+  }
+
+  get reasoningTranslate(): boolean {
+    return this.state.reasoningTranslate ?? false;
+  }
+
+  get translator(): { exe: string; model: string } {
+    const folder = join(this.root, "translate");
+    return {
+      exe: this.state.translator?.exe ?? join(folder, process.platform === "win32" ? "opus-mt-ko.exe" : "opus-mt-ko"),
+      model: this.state.translator?.model ?? join(folder, "model"),
+    };
   }
 
   get updateMode(): UpdateMode | null {
@@ -380,6 +396,11 @@ export class AccountStore {
 
   async setQuestionAuto(mode: QuestionAutoMode): Promise<void> {
     this.state.questionAuto = mode;
+    await this.save();
+  }
+
+  async setReasoningTranslate(enabled: boolean): Promise<void> {
+    this.state.reasoningTranslate = enabled;
     await this.save();
   }
 

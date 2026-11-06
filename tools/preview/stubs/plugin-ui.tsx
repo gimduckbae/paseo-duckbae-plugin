@@ -35,6 +35,11 @@ export function ExternalLink({ children }: { href: string; children: ReactNode }
   return <Text style={{ fontSize: 12, color: previewTheme.colors.accent, textDecorationLine: "underline" }}>{children}</Text>;
 }
 
+// Paseo의 StreamedText 대역. 실제 앱은 글자를 호스트 속도로 흘려 보여 주지만 캡처에서는 전체를 한 번에 그린다.
+export function StreamedText({ text, style }: { text: string; phase: "streaming" | "complete"; style?: object }) {
+  return <Text style={style}>{text}</Text>;
+}
+
 // Paseo의 MarkdownRenderer 대역. 표·목록이 깨지지 않는지만 보려고 marked로 그린다(글꼴·간격은 실제 앱과 다르다).
 export function Markdown({ children }: { children: string }) {
   const c = previewTheme.colors;

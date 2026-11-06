@@ -25,6 +25,8 @@ import { WorkflowCard } from "../../client/workflow-card";
 import { transformWorkflowToolCall } from "../../client/workflow-block";
 import { CARD as WF_CARD, KILLED_CARD, LAUNCH_OUTPUT, SCRIPT as WF_SCRIPT } from "./workflow-samples";
 import { NativeToolCall } from "./native-tool-call";
+import { ReasoningRow } from "../../client/reasoning-row";
+import { REASONING_LIVE, REASONING_SOURCE } from "./reasoning-samples";
 import { overview } from "./mock";
 import { Icon } from "./stubs/plugin-rn";
 import { previewTheme as theme, sidebarColors } from "./theme";
@@ -387,6 +389,85 @@ ${QUESTION_FENCE}
   );
 }
 
+// 생각 줄 하나. 호스트가 주는 플러그인 항목을 그대로 흉내 낸다(id는 주지 않는다).
+function ReasoningLine({ text, phase }: { text: string; phase: "streaming" | "complete" }) {
+  return (
+    <ReasoningRow
+      theme={theme}
+      host={host}
+      layout={{ compact: false, platform: "web" }}
+      agentId="a1"
+      timestamp={new Date()}
+      item={{ type: "plugin", kind: "reasoning-peek", version: 1, data: { text, phase } }}
+    />
+  );
+}
+
+// Paseo 기본 생각 줄(앱 agent-stream/view.tsx ThoughtSlot) 흉내. 알약을 끄면 이 모습으로 돌아간다.
+function NativeThoughtLine({ text }: { text: string }) {
+  return (
+    <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingVertical: 4 }}>
+      <Icon name="ChevronRight" size={14} color={c.foregroundMuted} />
+      <Icon name="Lightbulb" size={14} color={c.foregroundMuted} />
+      <Text style={{ fontSize: 13, color: c.foregroundMuted }} numberOfLines={1}>
+        thinking · {text.slice(0, 48)}…
+      </Text>
+    </View>
+  );
+}
+
+function ComposerWithPill({ on }: { on: boolean }) {
+  return (
+    <View style={{ gap: 8 }}>
+      <View style={{ flexDirection: "row", gap: 6 }}>
+        <View style={{ flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, borderWidth: 1, borderColor: c.border }}>
+          <Icon name="UserRound" size={13} color={c.foreground} />
+          <Text style={{ fontSize: 12, color: c.foreground }}>업무 Max</Text>
+        </View>
+        <View
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 6,
+            paddingHorizontal: 10,
+            paddingVertical: 4,
+            borderRadius: 999,
+            borderWidth: 1,
+            borderColor: on ? c.accent : c.border,
+            backgroundColor: on ? `${c.accent}1F` : "transparent",
+          }}
+        >
+          <Icon name={on ? "Eye" : "EyeOff"} size={13} color={on ? c.foreground : c.foregroundMuted} />
+          <Text style={{ fontSize: 12, fontWeight: on ? "600" : "400", color: on ? c.foreground : c.foregroundMuted }}>
+            추론 훔쳐보기 {on ? "켜짐" : "꺼짐"}
+          </Text>
+        </View>
+      </View>
+      <View style={{ height: 72, borderRadius: 12, borderWidth: 1, borderColor: c.border, padding: 14 }}>
+        <Text style={{ fontSize: 13, color: c.foregroundMuted }}>에이전트에게 메시지를 보내거나 @files 태그, /command</Text>
+      </View>
+    </View>
+  );
+}
+
+function Reasoning({ variant }: { variant: string }) {
+  return (
+    <View style={{ width: 760, padding: 24, gap: 12, backgroundColor: c.surface0 }}>
+      <View style={{ alignSelf: "flex-end", maxWidth: 520, padding: 12, borderRadius: 10, backgroundColor: c.surface2 }}>
+        <Text style={{ fontSize: 14, color: c.foreground }}>main.py 수정 전에 import 먼저 확인해줘</Text>
+      </View>
+      {variant === "off" ? <NativeThoughtLine text={REASONING_SOURCE} /> : null}
+      {variant === "on" ? <ReasoningLine text={REASONING_LIVE} phase="streaming" /> : null}
+      {variant === "on" || variant === "wait" || variant === "done" || variant === "fail" ? (
+        <ReasoningLine text={REASONING_SOURCE} phase="complete" />
+      ) : null}
+      <Text style={{ fontSize: 14, lineHeight: 21, color: c.foreground }}>config/app.toml을 읽고 import를 확인했습니다. 고칠 곳은 두 군데입니다.</Text>
+      <View style={{ height: 12 }} />
+      <ComposerWithPill on={variant !== "off"} />
+    </View>
+  );
+}
+
 function SessionAccount() {
   const layout = { compact: false, platform: "web" as const };
   return (
@@ -496,6 +577,8 @@ function WorkflowRaw({ width }: { width: number }) {
 
 const content =
   view === "handoff" ? <Handoff /> :
+  view.startsWith("rz-") ? <Reasoning variant={view.slice(3)} /> :
+  view.startsWith("desktop-rz-") ? <Desktop /> :
   view === "mobile" || view === "mobile-edit" ? <Mobile /> :
   view === "desktop-edit" ? <Desktop /> :
   view === "agent" ? <Agent /> :
